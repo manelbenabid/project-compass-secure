@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import { UserRole, UserLocation, UserStatus } from '../contexts/AuthContext';
 import pool from './dbConfig';
@@ -265,7 +266,12 @@ const mockCustomers: Customer[] = [
 export const getEmployees = async (): Promise<Employee[]> => {
   try {
     const result = await pool.query('SELECT * FROM employees');
-    return result.rows;
+    if (result.rows && result.rows.length > 0) {
+      return result.rows;
+    }
+    // Fallback to mock data if no results or in browser environment
+    console.log('Falling back to mock employee data');
+    return mockEmployees;
   } catch (error) {
     console.error('Database error in getEmployees:', error);
     // Fallback to mock data if database connection fails
