@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { UserRole, UserLocation, UserStatus } from '../contexts/AuthContext';
 
@@ -73,8 +72,6 @@ export interface Customer {
   industry: string;
   organization_type: CustomerType;
 }
-
-export type UserRole = 'admin' | 'lead' | 'developer' | 'account_manager';
 
 // Mock data (in a real app, this would be fetched from the server)
 const mockEmployees: Employee[] = [
