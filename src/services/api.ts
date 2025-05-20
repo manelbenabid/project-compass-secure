@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { UserRole, UserLocation, UserStatus } from '../contexts/AuthContext';
+import pool from './dbConfig';
 
 // Create axios instance
 const api = axios.create({
@@ -74,6 +75,7 @@ export interface Customer {
 }
 
 // Mock data (in a real app, this would be fetched from the server)
+// These are kept as fallbacks in case the database connection fails
 const mockEmployees: Employee[] = [
   {
     id: '1',
@@ -259,109 +261,492 @@ const mockCustomers: Customer[] = [
   }
 ];
 
-// API methods
+// API methods with PostgreSQL integration
 export const getEmployees = async (): Promise<Employee[]> => {
-  return mockEmployees;
+  try {
+    const result = await pool.query('SELECT * FROM employees');
+    return result.rows;
+  } catch (error) {
+    console.error('Database error in getEmployees:', error);
+    // Fallback to mock data if database connection fails
+    console.log('Falling back to mock employee data');
+    return mockEmployees;
+  }
 };
 
 export const getPocs = async (): Promise<Poc[]> => {
-  return mockPocs;
+  try {
+    const result = await pool.query(`
+      SELECT 
+        p.*,
+        json_agg(DISTINCT t) as team,
+        json_agg(DISTINCT c) FILTER (WHERE c.id IS NOT NULL) as comments,
+        array_agg(DISTINCT pt.tag_name) FILTER (WHERE pt.tag_name IS NOT NULL) as tags
+      FROM 
+        pocs p
+      LEFT JOIN 
+        poc_team pt ON p.id = pt.poc_id
+      LEFT JOIN 
+        employees t ON pt.employee_id = t.id
+      LEFT JOIN 
+        comments c ON p.id = c.poc_id
+      GROUP BY 
+        p.id
+    `);
+    
+    const pocs = result.rows.map(row => ({
+      ...row,
+      team: row.team || [],
+      comments: row.comments[0] ? row.comments : [],
+      tags: row.tags || []
+    }));
+    
+    return pocs;
+  } catch (error) {
+    console.error('Database error in getPocs:', error);
+    console.log('Falling back to mock POC data');
+    return mockPocs;
+  }
 };
 
 export const getPoc = async (id: string): Promise<Poc | null> => {
-  const poc = mockPocs.find(p => p.id === id);
-  return poc || null;
+  try {
+    const result = await pool.query(`
+      SELECT 
+        p.*,
+        json_agg(DISTINCT t) as team,
+        json_agg(DISTINCT c) FILTER (WHERE c.id IS NOT NULL) as comments,
+        array_agg(DISTINCT pt.tag_name) FILTER (WHERE pt.tag_name IS NOT NULL) as tags
+      FROM 
+        pocs p
+      LEFT JOIN 
+        poc_team pt ON p.id = pt.poc_id
+      LEFT JOIN 
+        employees t ON pt.employee_id = t.id
+      LEFT JOIN 
+        comments c ON p.id = c.poc_id
+      WHERE 
+        p.id = $1
+      GROUP BY 
+        p.id
+    `, [id]);
+    
+    if (result.rows.length === 0) {
+      return null;
+    }
+    
+    const poc = result.rows[0];
+    return {
+      ...poc,
+      team: poc.team[0] ? poc.team : [],
+      comments: poc.comments[0] ? poc.comments : [],
+      tags: poc.tags || []
+    };
+  } catch (error) {
+    console.error(`Database error in getPoc(${id}):`, error);
+    const poc = mockPocs.find(p => p.id === id);
+    return poc || null;
+  }
 };
 
 export const createPoc = async (poc: Omit<Poc, 'id' | 'createdAt' | 'updatedAt'>): Promise<Poc> => {
-  const newPoc: Poc = {
-    ...poc,
-    id: `${mockPocs.length + 1}`,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
-    comments: []
-  };
-  mockPocs.push(newPoc);
-  return newPoc;
+  try {
+    // Begin transaction
+    await pool.query('BEGIN');
+    
+    // Insert POC
+    const pocResult = await pool.query(`
+      INSERT INTO pocs (title, description, status, lead_id, end_time)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING id, title, description, status, created_at, updated_at, end_time, lead_id
+    `, [poc.title, poc.description, poc.status, poc.leadId, poc.endTime]);
+    
+    const newPoc = pocResult.rows[0];
+    const pocId = newPoc.id;
+    
+    // Insert tags
+    if (poc.tags && poc.tags.length > 0) {
+      const tagValues = poc.tags.map((tag, index) => 
+        `($1, $${index + 2})`
+      ).join(', ');
+      
+      const tagParams = [pocId, ...poc.tags];
+      
+      await pool.query(`
+        INSERT INTO poc_tags (poc_id, tag_name)
+        VALUES ${tagValues}
+      `, tagParams);
+    }
+    
+    // Insert team members
+    if (poc.team && poc.team.length > 0) {
+      const teamValues = poc.team.map((member, index) => 
+        `($1, $${index + 2})`
+      ).join(', ');
+      
+      const teamParams = [pocId, ...poc.team.map(member => member.id)];
+      
+      await pool.query(`
+        INSERT INTO poc_team (poc_id, employee_id)
+        VALUES ${teamValues}
+      `, teamParams);
+    }
+    
+    // Commit transaction
+    await pool.query('COMMIT');
+    
+    // Return the complete POC
+    return {
+      ...newPoc,
+      id: pocId,
+      createdAt: newPoc.created_at,
+      updatedAt: newPoc.updated_at,
+      endTime: newPoc.end_time,
+      leadId: newPoc.lead_id,
+      lead: poc.lead,
+      team: poc.team || [],
+      comments: [],
+      tags: poc.tags || []
+    };
+  } catch (error) {
+    // Rollback transaction on error
+    await pool.query('ROLLBACK');
+    console.error('Database error in createPoc:', error);
+    
+    // Fallback to mock implementation
+    const newPoc: Poc = {
+      ...poc,
+      id: `${mockPocs.length + 1}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      comments: []
+    };
+    mockPocs.push(newPoc);
+    return newPoc;
+  }
 };
 
 export const updatePoc = async (id: string, poc: Partial<Poc>): Promise<Poc | null> => {
-  const pocIndex = mockPocs.findIndex(p => p.id === id);
-  if (pocIndex === -1) return null;
-  
-  mockPocs[pocIndex] = {
-    ...mockPocs[pocIndex],
-    ...poc,
-    updatedAt: new Date().toISOString()
-  };
-  
-  return mockPocs[pocIndex];
+  try {
+    // Start with building the update fields
+    const updateFields: string[] = [];
+    const values: any[] = [];
+    let paramCount = 1;
+    
+    // Build the SET clause dynamically based on the provided fields
+    if (poc.title !== undefined) {
+      updateFields.push(`title = $${paramCount++}`);
+      values.push(poc.title);
+    }
+    
+    if (poc.description !== undefined) {
+      updateFields.push(`description = $${paramCount++}`);
+      values.push(poc.description);
+    }
+    
+    if (poc.status !== undefined) {
+      updateFields.push(`status = $${paramCount++}`);
+      values.push(poc.status);
+    }
+    
+    if (poc.leadId !== undefined) {
+      updateFields.push(`lead_id = $${paramCount++}`);
+      values.push(poc.leadId);
+    }
+    
+    if (poc.endTime !== undefined) {
+      updateFields.push(`end_time = $${paramCount++}`);
+      values.push(poc.endTime);
+    }
+    
+    // Always update the updated_at timestamp
+    updateFields.push(`updated_at = NOW()`);
+    
+    // Add the id parameter
+    values.push(id);
+    
+    // Begin transaction
+    await pool.query('BEGIN');
+    
+    // Update POC
+    if (updateFields.length > 0) {
+      await pool.query(`
+        UPDATE pocs
+        SET ${updateFields.join(', ')}
+        WHERE id = $${paramCount}
+      `, values);
+    }
+    
+    // Update tags if provided
+    if (poc.tags !== undefined) {
+      // Delete existing tags
+      await pool.query('DELETE FROM poc_tags WHERE poc_id = $1', [id]);
+      
+      // Insert new tags
+      if (poc.tags.length > 0) {
+        const tagValues = poc.tags.map((tag, index) => 
+          `($1, $${index + 2})`
+        ).join(', ');
+        
+        const tagParams = [id, ...poc.tags];
+        
+        await pool.query(`
+          INSERT INTO poc_tags (poc_id, tag_name)
+          VALUES ${tagValues}
+        `, tagParams);
+      }
+    }
+    
+    // Update team members if provided
+    if (poc.team !== undefined) {
+      // Delete existing team members
+      await pool.query('DELETE FROM poc_team WHERE poc_id = $1', [id]);
+      
+      // Insert new team members
+      if (poc.team.length > 0) {
+        const teamValues = poc.team.map((member, index) => 
+          `($1, $${index + 2})`
+        ).join(', ');
+        
+        const teamParams = [id, ...poc.team.map(member => member.id)];
+        
+        await pool.query(`
+          INSERT INTO poc_team (poc_id, employee_id)
+          VALUES ${teamValues}
+        `, teamParams);
+      }
+    }
+    
+    // Commit transaction
+    await pool.query('COMMIT');
+    
+    // Get the updated POC
+    return getPoc(id);
+  } catch (error) {
+    // Rollback transaction on error
+    await pool.query('ROLLBACK');
+    console.error(`Database error in updatePoc(${id}):`, error);
+    
+    // Fallback to mock implementation
+    const pocIndex = mockPocs.findIndex(p => p.id === id);
+    if (pocIndex === -1) return null;
+    
+    mockPocs[pocIndex] = {
+      ...mockPocs[pocIndex],
+      ...poc,
+      updatedAt: new Date().toISOString()
+    };
+    
+    return mockPocs[pocIndex];
+  }
 };
 
 export const addComment = async (pocId: string, text: string, authorId: string): Promise<Comment | null> => {
-  const poc = mockPocs.find(p => p.id === pocId);
-  if (!poc) return null;
-  
-  const author = mockEmployees.find(e => e.id === authorId);
-  if (!author) return null;
-  
-  const newComment: Comment = {
-    id: `${Date.now()}`,
-    pocId,
-    text,
-    createdAt: new Date().toISOString(),
-    author: {
-      id: author.id,
-      name: author.name,
-      avatar: author.avatar
+  try {
+    // Get author info
+    const authorResult = await pool.query('SELECT id, name, avatar FROM employees WHERE id = $1', [authorId]);
+    if (authorResult.rows.length === 0) {
+      throw new Error(`Author with ID ${authorId} not found`);
     }
-  };
-  
-  poc.comments.push(newComment);
-  return newComment;
+    
+    const author = authorResult.rows[0];
+    
+    // Insert comment
+    const result = await pool.query(`
+      INSERT INTO comments (poc_id, text, author_id)
+      VALUES ($1, $2, $3)
+      RETURNING id, poc_id, text, created_at
+    `, [pocId, text, authorId]);
+    
+    const comment = result.rows[0];
+    
+    return {
+      id: comment.id,
+      pocId: comment.poc_id,
+      text: comment.text,
+      createdAt: comment.created_at,
+      author: {
+        id: author.id,
+        name: author.name,
+        avatar: author.avatar
+      }
+    };
+  } catch (error) {
+    console.error(`Database error in addComment(${pocId}, ${authorId}):`, error);
+    
+    // Fallback to mock implementation
+    const poc = mockPocs.find(p => p.id === pocId);
+    if (!poc) return null;
+    
+    const author = mockEmployees.find(e => e.id === authorId);
+    if (!author) return null;
+    
+    const newComment: Comment = {
+      id: `${Date.now()}`,
+      pocId,
+      text,
+      createdAt: new Date().toISOString(),
+      author: {
+        id: author.id,
+        name: author.name,
+        avatar: author.avatar
+      }
+    };
+    
+    poc.comments.push(newComment);
+    return newComment;
+  }
 };
 
 export const getCustomers = async (): Promise<Customer[]> => {
-  return mockCustomers;
+  try {
+    const result = await pool.query('SELECT * FROM customers');
+    return result.rows;
+  } catch (error) {
+    console.error('Database error in getCustomers:', error);
+    return mockCustomers;
+  }
 };
 
 export const getCustomer = async (id: string): Promise<Customer | null> => {
-  const customer = mockCustomers.find(c => c.id === id);
-  return customer || null;
+  try {
+    const result = await pool.query('SELECT * FROM customers WHERE id = $1', [id]);
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (error) {
+    console.error(`Database error in getCustomer(${id}):`, error);
+    const customer = mockCustomers.find(c => c.id === id);
+    return customer || null;
+  }
 };
 
 export const updateCustomer = async (id: string, data: Partial<Customer>): Promise<Customer | null> => {
-  const customerIndex = mockCustomers.findIndex(c => c.id === id);
-  if (customerIndex === -1) return null;
-  
-  mockCustomers[customerIndex] = {
-    ...mockCustomers[customerIndex],
-    ...data
-  };
-  
-  return mockCustomers[customerIndex];
+  try {
+    // Build update query dynamically
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramCount = 1;
+    
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined) {
+        // Handle arrays separately (skills, certificates)
+        if (Array.isArray(value)) {
+          updates.push(`${key} = $${paramCount++}`);
+          values.push(value);
+        } else {
+          updates.push(`${key} = $${paramCount++}`);
+          values.push(value);
+        }
+      }
+    });
+    
+    if (updates.length === 0) {
+      return getCustomer(id); // Nothing to update
+    }
+    
+    values.push(id); // Add id as the last parameter
+    
+    const result = await pool.query(`
+      UPDATE customers
+      SET ${updates.join(', ')}
+      WHERE id = $${paramCount}
+      RETURNING *
+    `, values);
+    
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (error) {
+    console.error(`Database error in updateCustomer(${id}):`, error);
+    
+    // Fallback to mock implementation
+    const customerIndex = mockCustomers.findIndex(c => c.id === id);
+    if (customerIndex === -1) return null;
+    
+    mockCustomers[customerIndex] = {
+      ...mockCustomers[customerIndex],
+      ...data
+    };
+    
+    return mockCustomers[customerIndex];
+  }
 };
 
 export const createCustomer = async (customer: Omit<Customer, 'id'>): Promise<Customer> => {
-  const newCustomer: Customer = {
-    ...customer,
-    id: `${mockCustomers.length + 1}`
-  };
-  
-  mockCustomers.push(newCustomer);
-  return newCustomer;
+  try {
+    const result = await pool.query(`
+      INSERT INTO customers (name, contact_person, contact_email, contact_phone, industry, organization_type)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING *
+    `, [
+      customer.name,
+      customer.contact_person,
+      customer.contact_email,
+      customer.contact_phone,
+      customer.industry,
+      customer.organization_type
+    ]);
+    
+    return result.rows[0];
+  } catch (error) {
+    console.error('Database error in createCustomer:', error);
+    
+    // Fallback to mock implementation
+    const newCustomer: Customer = {
+      ...customer,
+      id: `${mockCustomers.length + 1}`
+    };
+    
+    mockCustomers.push(newCustomer);
+    return newCustomer;
+  }
 };
 
 export const updateEmployeeInfo = async (id: string, data: Partial<Employee>): Promise<Employee | null> => {
-  const employeeIndex = mockEmployees.findIndex(e => e.id === id);
-  if (employeeIndex === -1) return null;
-  
-  mockEmployees[employeeIndex] = {
-    ...mockEmployees[employeeIndex],
-    ...data
-  };
-  
-  return mockEmployees[employeeIndex];
+  try {
+    // Build update query dynamically
+    const updates: string[] = [];
+    const values: any[] = [];
+    let paramCount = 1;
+    
+    Object.entries(data).forEach(([key, value]) => {
+      if (value !== undefined) {
+        // Handle arrays separately (skills, certificates)
+        if (Array.isArray(value)) {
+          updates.push(`${key} = $${paramCount++}`);
+          values.push(value);
+        } else {
+          updates.push(`${key} = $${paramCount++}`);
+          values.push(value);
+        }
+      }
+    });
+    
+    if (updates.length === 0) {
+      return null; // Nothing to update
+    }
+    
+    values.push(id); // Add id as the last parameter
+    
+    const result = await pool.query(`
+      UPDATE employees
+      SET ${updates.join(', ')}
+      WHERE id = $${paramCount}
+      RETURNING *
+    `, values);
+    
+    return result.rows.length > 0 ? result.rows[0] : null;
+  } catch (error) {
+    console.error(`Database error in updateEmployeeInfo(${id}):`, error);
+    
+    // Fallback to mock implementation
+    const employeeIndex = mockEmployees.findIndex(e => e.id === id);
+    if (employeeIndex === -1) return null;
+    
+    mockEmployees[employeeIndex] = {
+      ...mockEmployees[employeeIndex],
+      ...data
+    };
+    
+    return mockEmployees[employeeIndex];
+  }
 };
 
 export default api;
