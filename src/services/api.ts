@@ -1,5 +1,6 @@
+
 import axios from 'axios';
-import { UserRole } from '../contexts/AuthContext';
+import { UserRole, UserLocation, UserStatus } from '../contexts/AuthContext';
 
 // Create axios instance
 const api = axios.create({
@@ -27,8 +28,8 @@ export interface Employee {
   avatar?: string;
   skills?: string[];
   certificates?: string[];
-  location?: 'remote' | 'in-office' | 'on-site' | 'off-site';
-  status?: 'active' | 'on leave' | 'other';
+  location?: UserLocation;
+  status?: UserStatus;
   jobTitle?: string;
 }
 
