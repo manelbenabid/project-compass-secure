@@ -84,10 +84,12 @@ const PocListPage: React.FC = () => {
           <p className="text-gray-500">Manage and track all POC projects</p>
         </div>
         {hasPermission('poc', 'create') && (
-          <Button as={Link} to="/pocs/create" className="mt-4 sm:mt-0">
-            <Plus className="w-4 h-4 mr-2" />
-            New POC
-          </Button>
+          <Link to="/pocs/create">
+            <Button className="mt-4 sm:mt-0">
+              <Plus className="w-4 h-4 mr-2" />
+              New POC
+            </Button>
+          </Link>
         )}
       </div>
 
@@ -136,10 +138,12 @@ const PocListPage: React.FC = () => {
                 : "No proof of concepts have been created yet"}
             </p>
             {hasPermission('poc', 'create') && (
-              <Button as={Link} to="/pocs/create" className="mt-4">
-                <Plus className="w-4 h-4 mr-2" />
-                Create your first POC
-              </Button>
+              <Link to="/pocs/create">
+                <Button className="mt-4">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create your first POC
+                </Button>
+              </Link>
             )}
           </CardContent>
         </Card>
