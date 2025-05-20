@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building, Mail, Phone, Edit, Industry, Search } from 'lucide-react';
+import { Building, Mail, Phone, Edit, Search, Briefcase } from 'lucide-react';
 import { Customer, CustomerType, getCustomers, updateCustomer } from '../services/api';
 import {
   Select,
@@ -159,7 +159,7 @@ const CustomerCard: React.FC<{
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Industry</label>
                     <div className="relative">
-                      <Industry className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                      <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
                       <Input 
                         name="industry"
                         value={formData.industry}

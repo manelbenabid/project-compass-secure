@@ -15,6 +15,8 @@ import React, { createContext, useState, useContext, useEffect } from 'react';
 
 // User role types
 export type UserRole = 'admin' | 'lead' | 'developer' | 'account_manager';
+export type UserLocation = 'remote' | 'in-office' | 'on-site' | 'off-site';
+export type UserStatus = 'active' | 'on leave' | 'other';
 
 // Mock user data
 const mockUser = {
@@ -26,8 +28,8 @@ const mockUser = {
   roles: ['admin'] as UserRole[],
   skills: ['React', 'TypeScript', 'Node.js'],
   certificates: ['AWS Certified Developer', 'Scrum Master'],
-  location: 'in-office',
-  status: 'active',
+  location: 'in-office' as UserLocation,
+  status: 'active' as UserStatus,
   jobTitle: 'Senior Developer',
   department: 'Engineering',
 };
@@ -44,8 +46,8 @@ interface AuthContextType {
     roles: UserRole[];
     skills?: string[];
     certificates?: string[];
-    location?: 'remote' | 'in-office' | 'on-site' | 'off-site';
-    status?: 'active' | 'on leave' | 'other';
+    location?: UserLocation;
+    status?: UserStatus;
     jobTitle?: string;
     department?: string;
   } | null;
@@ -68,8 +70,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsAuthenticated(true);
+      try {
+        const parsedUser = JSON.parse(storedUser);
+        // Ensure location and status are proper enum values
+        const validatedUser = {
+          ...parsedUser,
+          location: parsedUser.location as UserLocation,
+          status: parsedUser.status as UserStatus
+        };
+        setUser(validatedUser);
+        setIsAuthenticated(true);
+      } catch (error) {
+        console.error('Error parsing stored user:', error);
+      }
     }
     setIsLoading(false);
   }, []);
@@ -103,7 +116,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateUserInfo = (data: Partial<typeof mockUser>) => {
     if (!user) return;
     
-    const updatedUser = { ...user, ...data };
+    // Ensure location and status are valid enum values
+    const updatedUser = { 
+      ...user, 
+      ...data,
+      location: data.location as UserLocation,
+      status: data.status as UserStatus
+    };
+    
     setUser(updatedUser);
     localStorage.setItem('user', JSON.stringify(updatedUser));
   };
