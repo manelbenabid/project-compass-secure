@@ -1,7 +1,6 @@
-
 import axios from 'axios';
 import { UserRole, UserLocation, UserStatus } from '../contexts/AuthContext';
-import pool from './dbConfig';
+import dbConnection from './dbConfig';
 
 // Create axios instance
 const api = axios.create({
@@ -262,14 +261,14 @@ const mockCustomers: Customer[] = [
   }
 ];
 
-// API methods with PostgreSQL integration
+// API methods with database integration
 export const getEmployees = async (): Promise<Employee[]> => {
   try {
-    const result = await pool.query('SELECT * FROM employees');
+    const result = await dbConnection.query('SELECT * FROM employees');
     if (result.rows && result.rows.length > 0) {
       return result.rows;
     }
-    // Fallback to mock data if no results or in browser environment
+    // Fallback to mock data if no results
     console.log('Falling back to mock employee data');
     return mockEmployees;
   } catch (error) {
@@ -282,7 +281,7 @@ export const getEmployees = async (): Promise<Employee[]> => {
 
 export const getPocs = async (): Promise<Poc[]> => {
   try {
-    const result = await pool.query(`
+    const result = await dbConnection.query(`
       SELECT 
         p.*,
         json_agg(DISTINCT t) as team,
@@ -317,7 +316,7 @@ export const getPocs = async (): Promise<Poc[]> => {
 
 export const getPoc = async (id: string): Promise<Poc | null> => {
   try {
-    const result = await pool.query(`
+    const result = await dbConnection.query(`
       SELECT 
         p.*,
         json_agg(DISTINCT t) as team,
@@ -358,10 +357,10 @@ export const getPoc = async (id: string): Promise<Poc | null> => {
 export const createPoc = async (poc: Omit<Poc, 'id' | 'createdAt' | 'updatedAt'>): Promise<Poc> => {
   try {
     // Begin transaction
-    await pool.query('BEGIN');
+    await dbConnection.query('BEGIN');
     
     // Insert POC
-    const pocResult = await pool.query(`
+    const pocResult = await dbConnection.query(`
       INSERT INTO pocs (title, description, status, lead_id, end_time)
       VALUES ($1, $2, $3, $4, $5)
       RETURNING id, title, description, status, created_at, updated_at, end_time, lead_id
@@ -378,7 +377,7 @@ export const createPoc = async (poc: Omit<Poc, 'id' | 'createdAt' | 'updatedAt'>
       
       const tagParams = [pocId, ...poc.tags];
       
-      await pool.query(`
+      await dbConnection.query(`
         INSERT INTO poc_tags (poc_id, tag_name)
         VALUES ${tagValues}
       `, tagParams);
@@ -392,14 +391,14 @@ export const createPoc = async (poc: Omit<Poc, 'id' | 'createdAt' | 'updatedAt'>
       
       const teamParams = [pocId, ...poc.team.map(member => member.id)];
       
-      await pool.query(`
+      await dbConnection.query(`
         INSERT INTO poc_team (poc_id, employee_id)
         VALUES ${teamValues}
       `, teamParams);
     }
     
     // Commit transaction
-    await pool.query('COMMIT');
+    await dbConnection.query('COMMIT');
     
     // Return the complete POC
     return {
@@ -416,7 +415,7 @@ export const createPoc = async (poc: Omit<Poc, 'id' | 'createdAt' | 'updatedAt'>
     };
   } catch (error) {
     // Rollback transaction on error
-    await pool.query('ROLLBACK');
+    await dbConnection.query('ROLLBACK');
     console.error('Database error in createPoc:', error);
     
     // Fallback to mock implementation
@@ -472,11 +471,11 @@ export const updatePoc = async (id: string, poc: Partial<Poc>): Promise<Poc | nu
     values.push(id);
     
     // Begin transaction
-    await pool.query('BEGIN');
+    await dbConnection.query('BEGIN');
     
     // Update POC
     if (updateFields.length > 0) {
-      await pool.query(`
+      await dbConnection.query(`
         UPDATE pocs
         SET ${updateFields.join(', ')}
         WHERE id = $${paramCount}
@@ -486,7 +485,7 @@ export const updatePoc = async (id: string, poc: Partial<Poc>): Promise<Poc | nu
     // Update tags if provided
     if (poc.tags !== undefined) {
       // Delete existing tags
-      await pool.query('DELETE FROM poc_tags WHERE poc_id = $1', [id]);
+      await dbConnection.query('DELETE FROM poc_tags WHERE poc_id = $1', [id]);
       
       // Insert new tags
       if (poc.tags.length > 0) {
@@ -496,7 +495,7 @@ export const updatePoc = async (id: string, poc: Partial<Poc>): Promise<Poc | nu
         
         const tagParams = [id, ...poc.tags];
         
-        await pool.query(`
+        await dbConnection.query(`
           INSERT INTO poc_tags (poc_id, tag_name)
           VALUES ${tagValues}
         `, tagParams);
@@ -506,7 +505,7 @@ export const updatePoc = async (id: string, poc: Partial<Poc>): Promise<Poc | nu
     // Update team members if provided
     if (poc.team !== undefined) {
       // Delete existing team members
-      await pool.query('DELETE FROM poc_team WHERE poc_id = $1', [id]);
+      await dbConnection.query('DELETE FROM poc_team WHERE poc_id = $1', [id]);
       
       // Insert new team members
       if (poc.team.length > 0) {
@@ -516,7 +515,7 @@ export const updatePoc = async (id: string, poc: Partial<Poc>): Promise<Poc | nu
         
         const teamParams = [id, ...poc.team.map(member => member.id)];
         
-        await pool.query(`
+        await dbConnection.query(`
           INSERT INTO poc_team (poc_id, employee_id)
           VALUES ${teamValues}
         `, teamParams);
@@ -524,13 +523,13 @@ export const updatePoc = async (id: string, poc: Partial<Poc>): Promise<Poc | nu
     }
     
     // Commit transaction
-    await pool.query('COMMIT');
+    await dbConnection.query('COMMIT');
     
     // Get the updated POC
     return getPoc(id);
   } catch (error) {
     // Rollback transaction on error
-    await pool.query('ROLLBACK');
+    await dbConnection.query('ROLLBACK');
     console.error(`Database error in updatePoc(${id}):`, error);
     
     // Fallback to mock implementation
@@ -550,7 +549,7 @@ export const updatePoc = async (id: string, poc: Partial<Poc>): Promise<Poc | nu
 export const addComment = async (pocId: string, text: string, authorId: string): Promise<Comment | null> => {
   try {
     // Get author info
-    const authorResult = await pool.query('SELECT id, name, avatar FROM employees WHERE id = $1', [authorId]);
+    const authorResult = await dbConnection.query('SELECT id, name, avatar FROM employees WHERE id = $1', [authorId]);
     if (authorResult.rows.length === 0) {
       throw new Error(`Author with ID ${authorId} not found`);
     }
@@ -558,7 +557,7 @@ export const addComment = async (pocId: string, text: string, authorId: string):
     const author = authorResult.rows[0];
     
     // Insert comment
-    const result = await pool.query(`
+    const result = await dbConnection.query(`
       INSERT INTO comments (poc_id, text, author_id)
       VALUES ($1, $2, $3)
       RETURNING id, poc_id, text, created_at
@@ -606,7 +605,7 @@ export const addComment = async (pocId: string, text: string, authorId: string):
 
 export const getCustomers = async (): Promise<Customer[]> => {
   try {
-    const result = await pool.query('SELECT * FROM customers');
+    const result = await dbConnection.query('SELECT * FROM customers');
     return result.rows;
   } catch (error) {
     console.error('Database error in getCustomers:', error);
@@ -616,7 +615,7 @@ export const getCustomers = async (): Promise<Customer[]> => {
 
 export const getCustomer = async (id: string): Promise<Customer | null> => {
   try {
-    const result = await pool.query('SELECT * FROM customers WHERE id = $1', [id]);
+    const result = await dbConnection.query('SELECT * FROM customers WHERE id = $1', [id]);
     return result.rows.length > 0 ? result.rows[0] : null;
   } catch (error) {
     console.error(`Database error in getCustomer(${id}):`, error);
@@ -651,7 +650,7 @@ export const updateCustomer = async (id: string, data: Partial<Customer>): Promi
     
     values.push(id); // Add id as the last parameter
     
-    const result = await pool.query(`
+    const result = await dbConnection.query(`
       UPDATE customers
       SET ${updates.join(', ')}
       WHERE id = $${paramCount}
@@ -677,7 +676,7 @@ export const updateCustomer = async (id: string, data: Partial<Customer>): Promi
 
 export const createCustomer = async (customer: Omit<Customer, 'id'>): Promise<Customer> => {
   try {
-    const result = await pool.query(`
+    const result = await dbConnection.query(`
       INSERT INTO customers (name, contact_person, contact_email, contact_phone, industry, organization_type)
       VALUES ($1, $2, $3, $4, $5, $6)
       RETURNING *
@@ -731,7 +730,7 @@ export const updateEmployeeInfo = async (id: string, data: Partial<Employee>): P
     
     values.push(id); // Add id as the last parameter
     
-    const result = await pool.query(`
+    const result = await dbConnection.query(`
       UPDATE employees
       SET ${updates.join(', ')}
       WHERE id = $${paramCount}
