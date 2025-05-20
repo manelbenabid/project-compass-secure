@@ -14,6 +14,8 @@ import PocListPage from "./pages/PocListPage";
 import PocDetailPage from "./pages/PocDetailPage";
 import PocFormPage from "./pages/PocFormPage";
 import EmployeeListPage from "./pages/EmployeeListPage";
+import MyInfoPage from "./pages/MyInfoPage";
+import CustomersPage from "./pages/CustomersPage";
 import UnauthorizedPage from "./pages/UnauthorizedPage";
 import NotFound from "./pages/NotFound";
 
@@ -89,6 +91,24 @@ const App = () => (
               element={
                 <ProtectedRoute requiredPermission={{ resource: 'employee', action: 'view' }}>
                   <EmployeeListPage />
+                </ProtectedRoute>
+              } 
+            />
+
+            <Route 
+              path="/my-info" 
+              element={
+                <ProtectedRoute>
+                  <MyInfoPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/customers" 
+              element={
+                <ProtectedRoute requiredPermission={{ resource: 'customer', action: 'view' }}>
+                  <CustomersPage />
                 </ProtectedRoute>
               } 
             />

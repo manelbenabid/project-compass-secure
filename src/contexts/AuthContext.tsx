@@ -1,20 +1,36 @@
 
 import React, { createContext, useState, useContext, useEffect } from 'react';
-import { ReactKeycloakProvider } from '@react-keycloak/web';
-import Keycloak from 'keycloak-js';
+// import { ReactKeycloakProvider } from '@react-keycloak/web';
+// import Keycloak from 'keycloak-js';
 
-// Keycloak configuration
-const keycloakConfig = {
-  url: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080/auth',
-  realm: import.meta.env.VITE_KEYCLOAK_REALM || 'poc-manager',
-  clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'poc-manager-client',
-};
+// Keycloak configuration - commented out as requested
+// const keycloakConfig = {
+//   url: import.meta.env.VITE_KEYCLOAK_URL || 'http://localhost:8080/auth',
+//   realm: import.meta.env.VITE_KEYCLOAK_REALM || 'poc-manager',
+//   clientId: import.meta.env.VITE_KEYCLOAK_CLIENT_ID || 'poc-manager-client',
+// };
 
 // Initialize Keycloak instance
-const keycloak = new Keycloak(keycloakConfig);
+// const keycloak = new Keycloak(keycloakConfig);
 
 // User role types
 export type UserRole = 'admin' | 'lead' | 'developer' | 'account_manager';
+
+// Mock user data
+const mockUser = {
+  id: '1',
+  name: 'Jane Smith',
+  email: 'jane.smith@company.com',
+  phone: '555-123-4567',
+  workExtension: '1234',
+  roles: ['admin'] as UserRole[],
+  skills: ['React', 'TypeScript', 'Node.js'],
+  certificates: ['AWS Certified Developer', 'Scrum Master'],
+  location: 'in-office',
+  status: 'active',
+  jobTitle: 'Senior Developer',
+  department: 'Engineering',
+};
 
 // User context type
 interface AuthContextType {
@@ -23,28 +39,53 @@ interface AuthContextType {
     id: string;
     name: string;
     email: string;
+    phone?: string;
+    workExtension?: string;
     roles: UserRole[];
+    skills?: string[];
+    certificates?: string[];
+    location?: 'remote' | 'in-office' | 'on-site' | 'off-site';
+    status?: 'active' | 'on leave' | 'other';
+    jobTitle?: string;
+    department?: string;
   } | null;
   login: () => void;
   logout: () => void;
   hasRole: (role: UserRole | UserRole[]) => boolean;
   hasPermission: (resource: string, action: string) => boolean;
   isLoading: boolean;
+  updateUserInfo: (data: Partial<typeof mockUser>) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [user, setUser] = useState<AuthContextType['user']>(null);
 
+  // Auto login for development
+  useEffect(() => {
+    const storedUser = localStorage.getItem('user');
+    if (storedUser) {
+      setUser(JSON.parse(storedUser));
+      setIsAuthenticated(true);
+    }
+    setIsLoading(false);
+  }, []);
+
   const login = () => {
-    keycloak.login();
+    // Mock login
+    setIsAuthenticated(true);
+    setUser(mockUser);
+    localStorage.setItem('user', JSON.stringify(mockUser));
   };
 
   const logout = () => {
-    keycloak.logout();
+    // Mock logout
+    setIsAuthenticated(false);
+    setUser(null);
+    localStorage.removeItem('user');
   };
 
   // Check if user has a specific role or one of multiple roles
@@ -58,6 +99,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return user.roles.includes(role);
   };
 
+  // Update user information
+  const updateUserInfo = (data: Partial<typeof mockUser>) => {
+    if (!user) return;
+    
+    const updatedUser = { ...user, ...data };
+    setUser(updatedUser);
+    localStorage.setItem('user', JSON.stringify(updatedUser));
+  };
+
   // Check if user has permission for a specific resource and action
   const hasPermission = (resource: string, action: string): boolean => {
     if (!user) return false;
@@ -65,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Admin has all permissions
     if (user.roles.includes('admin')) return true;
     
-    // Example permission checks - in a real application, these would be more sophisticated
+    // Example permission checks
     if (resource === 'poc') {
       if (action === 'view') return true; // Everyone can view POCs
       if (action === 'create' || action === 'edit') return hasRole(['admin', 'lead']);
@@ -81,55 +131,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (action === 'add') return true; // Everyone can add comments
       if (action === 'delete') return hasRole(['admin', 'lead']);
     }
+
+    if (resource === 'customer') {
+      if (action === 'view') return true; // Everyone can view customers
+      if (action === 'edit') return hasRole(['admin', 'lead', 'account_manager']);
+    }
     
     return false;
   };
 
-  const onKeycloakEvent = (event: string) => {
-    if (event === 'onReady') {
-      setIsLoading(false);
-    }
-    if (event === 'onAuthSuccess') {
-      setIsAuthenticated(true);
-      const profile = keycloak.tokenParsed as any;
-      
-      if (profile) {
-        setUser({
-          id: profile.sub,
-          name: profile.name || profile.preferred_username,
-          email: profile.email,
-          roles: (profile.realm_access?.roles || []).filter((role: string) => 
-            ['admin', 'lead', 'developer', 'account_manager'].includes(role)
-          ) as UserRole[],
-        });
-      }
-    }
-  };
-
-  const onKeycloakTokens = () => {
-    // Token refresh handling if needed
-  };
-
   return (
-    <ReactKeycloakProvider 
-      authClient={keycloak}
-      onEvent={onKeycloakEvent}
-      onTokens={onKeycloakTokens}
+    <AuthContext.Provider 
+      value={{ 
+        isAuthenticated, 
+        user, 
+        login, 
+        logout, 
+        hasRole, 
+        hasPermission,
+        isLoading,
+        updateUserInfo
+      }}
     >
-      <AuthContext.Provider 
-        value={{ 
-          isAuthenticated, 
-          user, 
-          login, 
-          logout, 
-          hasRole, 
-          hasPermission,
-          isLoading 
-        }}
-      >
-        {children}
-      </AuthContext.Provider>
-    </ReactKeycloakProvider>
+      {children}
+    </AuthContext.Provider>
   );
 };
 

@@ -9,7 +9,9 @@ import {
   LogOut, 
   Menu, 
   X,
-  User
+  User,
+  Building,
+  Phone
 } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
@@ -38,12 +40,19 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'POCs', href: '/pocs', icon: FileCode },
+    { name: 'My Info', href: '/my-info', icon: User },
     { 
       name: 'Employees', 
       href: '/employees', 
       icon: Users,
       permission: { resource: 'employee', action: 'view' }
     },
+    {
+      name: 'Customers',
+      href: '/customers',
+      icon: Building,
+      permission: { resource: 'customer', action: 'view' }
+    }
   ];
 
   return (
@@ -119,6 +128,12 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
                   <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuLabel>My Account</DropdownMenuLabel>
                     <DropdownMenuSeparator />
+                    <DropdownMenuItem asChild>
+                      <Link to="/my-info" className="cursor-pointer w-full">
+                        <User className="w-4 h-4 mr-2" />
+                        <span>My Info</span>
+                      </Link>
+                    </DropdownMenuItem>
                     <DropdownMenuItem className="cursor-pointer" onClick={logout}>
                       <LogOut className="w-4 h-4 mr-2" />
                       <span>Log out</span>

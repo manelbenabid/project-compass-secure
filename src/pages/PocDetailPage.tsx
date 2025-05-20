@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { getPoc, addComment, updatePoc, Poc, PocStatus } from '../services/api';
 import AppLayout from '../components/AppLayout';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { 
   Card, 
   CardContent, 
@@ -21,7 +22,8 @@ import {
   CheckCircle, 
   Clock, 
   FileCode, 
-  Archive 
+  Archive,
+  CalendarClock
 } from 'lucide-react';
 import { Textarea } from '@/components/ui/textarea';
 import {
@@ -38,6 +40,7 @@ import {
 } from "@/components/ui/select";
 import { Separator } from '@/components/ui/separator';
 import { toast } from "sonner";
+import { format } from 'date-fns';
 
 const statusColors = {
   proposed: 'bg-amber-100 text-amber-700 border-amber-200',
@@ -62,22 +65,32 @@ const PocDetailPage: React.FC = () => {
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [statusUpdating, setStatusUpdating] = useState(false);
+  const [endTime, setEndTime] = useState('');
+  const [isEndTimeUpdating, setIsEndTimeUpdating] = useState(false);
+
+  const fetchPoc = async () => {
+    if (!id) return;
+    
+    try {
+      setLoading(true);
+      const data = await getPoc(id);
+      setPoc(data);
+      
+      // Format end time for input if available
+      if (data?.endTime) {
+        const endDate = new Date(data.endTime);
+        const formattedDate = format(endDate, "yyyy-MM-dd'T'HH:mm");
+        setEndTime(formattedDate);
+      }
+    } catch (error) {
+      console.error('Error fetching POC details:', error);
+      toast.error('Failed to load POC details');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchPoc = async () => {
-      if (!id) return;
-      
-      try {
-        const data = await getPoc(id);
-        setPoc(data);
-      } catch (error) {
-        console.error('Error fetching POC details:', error);
-        toast.error('Failed to load POC details');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchPoc();
   }, [id]);
 
@@ -120,6 +133,25 @@ const PocDetailPage: React.FC = () => {
       toast.error('Failed to add comment');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleEndTimeUpdate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!poc || !id) return;
+    
+    try {
+      setIsEndTimeUpdating(true);
+      const updated = await updatePoc(id, { endTime: endTime ? new Date(endTime).toISOString() : undefined });
+      if (updated) {
+        setPoc(updated);
+        toast.success('End time updated successfully');
+      }
+    } catch (error) {
+      console.error('Error updating end time:', error);
+      toast.error('Failed to update end time');
+    } finally {
+      setIsEndTimeUpdating(false);
     }
   };
 
@@ -287,6 +319,54 @@ const PocDetailPage: React.FC = () => {
                   </Select>
                 </div>
               )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <CalendarClock className="w-5 h-5 mr-2" />
+                Timeline
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-gray-500">Start Date</p>
+                <p className="text-base font-medium">
+                  {format(new Date(poc.createdAt), "MMM d, yyyy")}
+                </p>
+              </div>
+
+              <div>
+                <div className="flex flex-row justify-between items-center">
+                  <p className="text-sm font-medium text-gray-500">End Time</p>
+                  {poc.endTime && (
+                    <p className="text-sm font-medium text-gray-900">
+                      {format(new Date(poc.endTime), "MMM d, yyyy h:mm a")}
+                    </p>
+                  )}
+                </div>
+                {hasPermission('poc', 'edit') && (
+                  <form className="mt-2" onSubmit={handleEndTimeUpdate}>
+                    <div className="flex space-x-2">
+                      <Input
+                        type="datetime-local"
+                        value={endTime}
+                        onChange={(e) => setEndTime(e.target.value)}
+                        className="flex-1"
+                      />
+                      <Button 
+                        type="submit" 
+                        variant="outline" 
+                        size="sm"
+                        disabled={isEndTimeUpdating}
+                      >
+                        {isEndTimeUpdating ? 'Saving...' : 'Update'}
+                      </Button>
+                    </div>
+                  </form>
+                )}
+              </div>
             </CardContent>
           </Card>
 

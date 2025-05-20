@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { UserRole } from '../contexts/AuthContext';
 
@@ -21,9 +20,16 @@ export interface Employee {
   id: string;
   name: string;
   email: string;
+  phone?: string;
+  workExtension?: string;
   role: UserRole;
   department: string;
   avatar?: string;
+  skills?: string[];
+  certificates?: string[];
+  location?: 'remote' | 'in-office' | 'on-site' | 'off-site';
+  status?: 'active' | 'on leave' | 'other';
+  jobTitle?: string;
 }
 
 export interface Comment {
@@ -47,6 +53,7 @@ export interface Poc {
   status: PocStatus;
   createdAt: string;
   updatedAt: string;
+  endTime?: string;
   leadId: string;
   lead?: Employee;
   team: Employee[];
@@ -54,23 +61,51 @@ export interface Poc {
   tags: string[];
 }
 
+export type CustomerType = 'private' | 'governmental' | 'semi-private';
+
+export interface Customer {
+  id: string;
+  name: string;
+  contact_person: string;
+  contact_email: string;
+  contact_phone: string;
+  industry: string;
+  organization_type: CustomerType;
+}
+
+export type UserRole = 'admin' | 'lead' | 'developer' | 'account_manager';
+
 // Mock data (in a real app, this would be fetched from the server)
 const mockEmployees: Employee[] = [
   {
     id: '1',
     name: 'Jane Smith',
     email: 'jane.smith@company.com',
+    phone: '555-123-4567',
+    workExtension: '1234',
     role: 'admin',
     department: 'Engineering',
-    avatar: 'https://i.pravatar.cc/150?img=1'
+    avatar: 'https://i.pravatar.cc/150?img=1',
+    skills: ['React', 'TypeScript', 'Node.js'],
+    certificates: ['AWS Certified Developer', 'Scrum Master'],
+    location: 'in-office',
+    status: 'active',
+    jobTitle: 'Senior Developer'
   },
   {
     id: '2',
     name: 'John Doe',
     email: 'john.doe@company.com',
+    phone: '555-987-6543',
+    workExtension: '4321',
     role: 'lead',
     department: 'Engineering',
-    avatar: 'https://i.pravatar.cc/150?img=2'
+    avatar: 'https://i.pravatar.cc/150?img=2',
+    skills: ['JavaScript', 'React', 'Python'],
+    certificates: ['Azure Developer Associate'],
+    location: 'remote',
+    status: 'active',
+    jobTitle: 'Team Lead'
   },
   {
     id: '3',
@@ -106,6 +141,7 @@ const mockPocs: Poc[] = [
     status: 'in_progress',
     createdAt: '2023-01-15T10:30:00Z',
     updatedAt: '2023-03-20T14:45:00Z',
+    endTime: '2023-06-15T10:30:00Z',
     leadId: '2',
     team: [mockEmployees[0], mockEmployees[2], mockEmployees[3]],
     comments: [
@@ -195,31 +231,51 @@ const mockPocs: Poc[] = [
   }
 ];
 
+const mockCustomers: Customer[] = [
+  {
+    id: '1',
+    name: 'Acme Corporation',
+    contact_person: 'Wile E. Coyote',
+    contact_email: 'wcoyote@acme.com',
+    contact_phone: '555-123-4567',
+    industry: 'Manufacturing',
+    organization_type: 'private'
+  },
+  {
+    id: '2',
+    name: 'Wayne Enterprises',
+    contact_person: 'Bruce Wayne',
+    contact_email: 'bruce@wayne.com',
+    contact_phone: '555-876-5432',
+    industry: 'Technology',
+    organization_type: 'private'
+  },
+  {
+    id: '3',
+    name: 'City of Metropolis',
+    contact_person: 'Mayor Office',
+    contact_email: 'mayor@metropolis.gov',
+    contact_phone: '555-789-0123',
+    industry: 'Government',
+    organization_type: 'governmental'
+  }
+];
+
 // API methods
 export const getEmployees = async (): Promise<Employee[]> => {
-  // In a real app, this would call the API
-  // return (await api.get('/employees')).data;
   return mockEmployees;
 };
 
 export const getPocs = async (): Promise<Poc[]> => {
-  // In a real app, this would call the API
-  // return (await api.get('/pocs')).data;
   return mockPocs;
 };
 
 export const getPoc = async (id: string): Promise<Poc | null> => {
-  // In a real app, this would call the API
-  // return (await api.get(`/pocs/${id}`)).data;
   const poc = mockPocs.find(p => p.id === id);
   return poc || null;
 };
 
 export const createPoc = async (poc: Omit<Poc, 'id' | 'createdAt' | 'updatedAt'>): Promise<Poc> => {
-  // In a real app, this would call the API
-  // return (await api.post('/pocs', poc)).data;
-  
-  // Mock implementation
   const newPoc: Poc = {
     ...poc,
     id: `${mockPocs.length + 1}`,
@@ -232,10 +288,6 @@ export const createPoc = async (poc: Omit<Poc, 'id' | 'createdAt' | 'updatedAt'>
 };
 
 export const updatePoc = async (id: string, poc: Partial<Poc>): Promise<Poc | null> => {
-  // In a real app, this would call the API
-  // return (await api.put(`/pocs/${id}`, poc)).data;
-  
-  // Mock implementation
   const pocIndex = mockPocs.findIndex(p => p.id === id);
   if (pocIndex === -1) return null;
   
@@ -249,10 +301,6 @@ export const updatePoc = async (id: string, poc: Partial<Poc>): Promise<Poc | nu
 };
 
 export const addComment = async (pocId: string, text: string, authorId: string): Promise<Comment | null> => {
-  // In a real app, this would call the API
-  // return (await api.post(`/pocs/${pocId}/comments`, { text, authorId })).data;
-  
-  // Mock implementation
   const poc = mockPocs.find(p => p.id === pocId);
   if (!poc) return null;
   
@@ -273,6 +321,49 @@ export const addComment = async (pocId: string, text: string, authorId: string):
   
   poc.comments.push(newComment);
   return newComment;
+};
+
+export const getCustomers = async (): Promise<Customer[]> => {
+  return mockCustomers;
+};
+
+export const getCustomer = async (id: string): Promise<Customer | null> => {
+  const customer = mockCustomers.find(c => c.id === id);
+  return customer || null;
+};
+
+export const updateCustomer = async (id: string, data: Partial<Customer>): Promise<Customer | null> => {
+  const customerIndex = mockCustomers.findIndex(c => c.id === id);
+  if (customerIndex === -1) return null;
+  
+  mockCustomers[customerIndex] = {
+    ...mockCustomers[customerIndex],
+    ...data
+  };
+  
+  return mockCustomers[customerIndex];
+};
+
+export const createCustomer = async (customer: Omit<Customer, 'id'>): Promise<Customer> => {
+  const newCustomer: Customer = {
+    ...customer,
+    id: `${mockCustomers.length + 1}`
+  };
+  
+  mockCustomers.push(newCustomer);
+  return newCustomer;
+};
+
+export const updateEmployeeInfo = async (id: string, data: Partial<Employee>): Promise<Employee | null> => {
+  const employeeIndex = mockEmployees.findIndex(e => e.id === id);
+  if (employeeIndex === -1) return null;
+  
+  mockEmployees[employeeIndex] = {
+    ...mockEmployees[employeeIndex],
+    ...data
+  };
+  
+  return mockEmployees[employeeIndex];
 };
 
 export default api;
