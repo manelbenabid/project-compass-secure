@@ -13,6 +13,9 @@ import DashboardPage from "./pages/DashboardPage";
 import PocListPage from "./pages/PocListPage";
 import PocDetailPage from "./pages/PocDetailPage";
 import PocFormPage from "./pages/PocFormPage";
+import ProjectListPage from "./pages/ProjectListPage";
+import ProjectDetailPage from "./pages/ProjectDetailPage";
+import ProjectFormPage from "./pages/ProjectFormPage";
 import EmployeeListPage from "./pages/EmployeeListPage";
 import MyInfoPage from "./pages/MyInfoPage";
 import CustomersPage from "./pages/CustomersPage";
@@ -82,6 +85,43 @@ const App = () => (
               element={
                 <ProtectedRoute requiredPermission={{ resource: 'poc', action: 'edit' }}>
                   <PocFormPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            {/* New Project Routes */}
+            <Route 
+              path="/projects" 
+              element={
+                <ProtectedRoute>
+                  <ProjectListPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/projects/:id" 
+              element={
+                <ProtectedRoute>
+                  <ProjectDetailPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/projects/create" 
+              element={
+                <ProtectedRoute requiredPermission={{ resource: 'project', action: 'create' }}>
+                  <ProjectFormPage />
+                </ProtectedRoute>
+              } 
+            />
+            
+            <Route 
+              path="/projects/:id/edit" 
+              element={
+                <ProtectedRoute requiredPermission={{ resource: 'project', action: 'edit' }}>
+                  <ProjectFormPage />
                 </ProtectedRoute>
               } 
             />
