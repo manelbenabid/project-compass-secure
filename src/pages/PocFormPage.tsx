@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -181,11 +182,9 @@ const PocFormPage: React.FC = () => {
       
       // Map team members to Employee objects with selected roles
       const team = data.teamMembers.map(tm => {
-        const emp = employees.find(e => e.id === tm.id);
-        if (!emp) throw new Error(`Employee with ID ${tm.id} not found`);
+        // We already have the full employee objects in teamMembers
         return {
-          ...emp,
-          role: tm.role // Override the employee's original role with the selected role for this POC
+          ...tm
         };
       });
       
@@ -260,6 +259,13 @@ const PocFormPage: React.FC = () => {
     const currentTeamMembers = [...watchTeamMembers];
     const existingMemberIndex = currentTeamMembers.findIndex(m => m.id === employeeId);
     
+    // Find the complete employee object
+    const employeeData = employees.find(e => e.id === employeeId);
+    if (!employeeData) {
+      console.error(`Employee with ID ${employeeId} not found`);
+      return;
+    }
+    
     // If setting as lead, ensure no other member is a lead
     if (role === 'lead') {
       // Remove lead role from any existing lead
@@ -277,12 +283,21 @@ const PocFormPage: React.FC = () => {
       }
     }
     
+    // Create a proper PocTeamMember object with all required properties from the employee
+    const teamMember: PocTeamMember = {
+      ...employeeData, // Copy all properties from the employee
+      role: role // Override the role with the selected role for this POC
+    };
+    
     if (existingMemberIndex >= 0) {
       // Update the role if the employee is already selected
-      currentTeamMembers[existingMemberIndex].role = role;
+      currentTeamMembers[existingMemberIndex] = {
+        ...currentTeamMembers[existingMemberIndex],
+        role: role
+      };
     } else {
       // Add the new team member
-      currentTeamMembers.push({ id: employeeId, role });
+      currentTeamMembers.push(teamMember);
     }
     
     form.setValue('teamMembers', currentTeamMembers);
