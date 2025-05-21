@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -14,7 +15,8 @@ import {
   Employee, 
   PocStatus, 
   PocTechnology,
-  Customer 
+  Customer,
+  PocTeamMember
 } from '../services/api';
 import { format } from 'date-fns';
 import AppLayout from '../components/AppLayout';
@@ -94,7 +96,7 @@ const PocFormPage: React.FC = () => {
   const form = useForm<FormData>({
     defaultValues: {
       title: '',
-      status: 'proposed',
+      status: 'Account Manager coordinated with Tech Lead',
       technology: 'switching',
       customerId: '',
       leadId: '',
@@ -265,6 +267,23 @@ const PocFormPage: React.FC = () => {
     const currentTeamMembers = [...watchTeamMembers];
     const existingMemberIndex = currentTeamMembers.findIndex(m => m.id === employeeId);
     
+    // If setting as lead, ensure no other member is a lead
+    if (role === 'lead') {
+      // Remove lead role from any existing lead
+      const existingLeadIndex = currentTeamMembers.findIndex(m => m.role === 'lead');
+      if (existingLeadIndex >= 0) {
+        currentTeamMembers[existingLeadIndex].role = 'support';
+        
+        // If we're changing an existing member to lead, show a notification
+        if (existingLeadIndex !== existingMemberIndex) {
+          const existingLead = employees.find(e => e.id === currentTeamMembers[existingLeadIndex].id);
+          if (existingLead) {
+            toast.info(`${existingLead.name} is now set as support`);
+          }
+        }
+      }
+    }
+    
     if (existingMemberIndex >= 0) {
       // Update the role if the employee is already selected
       currentTeamMembers[existingMemberIndex].role = role;
@@ -345,6 +364,52 @@ const PocFormPage: React.FC = () => {
                       </FormItem>
                     )}
                   />
+                  
+                  <FormField
+                    control={form.control}
+                    name="customerId"
+                    rules={{ required: 'Customer is required' }}
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Customer</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          value={field.value}
+                          disabled={isEditMode} // Customer cannot be changed in edit mode
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select customer" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {customers.map(customer => (
+                              <SelectItem key={customer.id} value={customer.id}>
+                                {customer.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {isEditMode && (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className="flex items-center mt-1 text-xs text-amber-600">
+                                  <Info className="h-3 w-3 mr-1" />
+                                  Customer cannot be changed after creation
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>Customer assignment is permanent and cannot be modified</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        )}
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
                   {isEditMode && (
                     <div>
@@ -397,19 +462,14 @@ const PocFormPage: React.FC = () => {
                             <SelectItem value="Tech Lead assigned engineering team">
                               Tech Lead assigned engineering team
                             </SelectItem>
-                            <SelectItem value="kickoff is done & scopes defined">
+                            <SelectItem value="Kickoff is done & scopes defined">
                               Kickoff is done & scopes defined
                             </SelectItem>
-                            <SelectItem value="in progress">In progress</SelectItem>
-                            <SelectItem value="customer pending">Customer pending</SelectItem>
+                            <SelectItem value="In progress">In progress</SelectItem>
+                            <SelectItem value="Customer pending">Customer pending</SelectItem>
                             <SelectItem value="Taqniyat pending">Taqniyat pending</SelectItem>
-                            <SelectItem value="done">Done</SelectItem>
-                            <SelectItem value="failed">Failed</SelectItem>
-                            {/* Legacy statuses */}
-                            <SelectItem value="proposed">Proposed</SelectItem>
-                            <SelectItem value="in_progress">In Progress</SelectItem>
-                            <SelectItem value="completed">Completed</SelectItem>
-                            <SelectItem value="archived">Archived</SelectItem>
+                            <SelectItem value="Done">Done</SelectItem>
+                            <SelectItem value="Failed">Failed</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormMessage />
@@ -449,52 +509,6 @@ const PocFormPage: React.FC = () => {
                             <SelectItem value="Webex Room Kits">Webex Room Kits</SelectItem>
                           </SelectContent>
                         </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="customerId"
-                    rules={{ required: 'Customer is required' }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Customer</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          value={field.value}
-                          disabled={isEditMode} // Customer cannot be changed in edit mode
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select customer" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {customers.map(customer => (
-                              <SelectItem key={customer.id} value={customer.id}>
-                                {customer.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        {isEditMode && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center mt-1 text-xs text-amber-600">
-                                  <Info className="h-3 w-3 mr-1" />
-                                  Customer cannot be changed after creation
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Customer assignment is permanent and cannot be modified</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
                         <FormMessage />
                       </FormItem>
                     )}
