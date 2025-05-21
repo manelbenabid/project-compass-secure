@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -58,12 +57,6 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { X, ArrowLeft, Plus, Check, Calendar as CalendarIcon, Info } from 'lucide-react';
 import { toast } from "sonner";
-
-// Define a type for team members with specific role in the context of a POC
-interface PocTeamMember {
-  id: string;
-  role: 'lead' | 'support';
-}
 
 interface FormData {
   title: string;
