@@ -28,7 +28,6 @@ import {
   CardTitle 
 } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Form,
   FormControl,
@@ -61,16 +60,17 @@ import { toast } from "sonner";
 
 interface FormData {
   title: string;
-  description: string;
   status: PocStatus;
   technology: PocTechnology;
   customerId: string;
   leadId: string;
   accountManagerId: string;
-  teamIds: string[];
+  teamMembers: {
+    id: string;
+    role: 'lead' | 'support';
+  }[];
   startDate: string;
   endDate: string;
-  tags: string[];
   comment?: string;
 }
 
@@ -85,7 +85,6 @@ const PocFormPage: React.FC = () => {
   const [leads, setLeads] = useState<Employee[]>([]);
   const [accountManagers, setAccountManagers] = useState<Employee[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
-  const [tagInput, setTagInput] = useState('');
   const [startDateVal, setStartDateVal] = useState<Date | undefined>(undefined);
   const [endDateVal, setEndDateVal] = useState<Date | undefined>(undefined);
   const [commentText, setCommentText] = useState('');
@@ -93,22 +92,19 @@ const PocFormPage: React.FC = () => {
   const form = useForm<FormData>({
     defaultValues: {
       title: '',
-      description: '',
       status: 'proposed',
       technology: 'switching',
       customerId: '',
       leadId: '',
       accountManagerId: '',
-      teamIds: [],
+      teamMembers: [],
       startDate: '',
       endDate: '',
-      tags: [],
       comment: ''
     }
   });
 
-  const watchTags = form.watch('tags', []);
-  const watchTeamIds = form.watch('teamIds', []);
+  const watchTeamMembers = form.watch('teamMembers', []);
   const watchStartDate = form.watch('startDate');
   const watchEndDate = form.watch('endDate');
 
@@ -134,18 +130,22 @@ const PocFormPage: React.FC = () => {
         if (isEditMode && id) {
           const pocData = await getPoc(id);
           if (pocData) {
+            // Transform team data to include roles
+            const teamMembers = pocData.team.map(member => ({
+              id: member.id,
+              role: member.role === 'lead' ? 'lead' : 'support'
+            }));
+            
             form.reset({
               title: pocData.title,
-              description: pocData.description,
               status: pocData.status,
               technology: pocData.technology,
               customerId: pocData.customerId,
               leadId: pocData.leadId,
               accountManagerId: pocData.accountManagerId,
-              teamIds: pocData.team.map(member => member.id),
+              teamMembers: teamMembers,
               startDate: pocData.startDate,
-              endDate: pocData.endDate || '',
-              tags: pocData.tags
+              endDate: pocData.endDate || ''
             });
 
             // Set date state for the calendar components
@@ -182,8 +182,15 @@ const PocFormPage: React.FC = () => {
     try {
       setSubmitting(true);
       
-      // Prepare team data
-      const team = employees.filter(emp => data.teamIds.includes(emp.id));
+      // Map team members to Employee objects with selected roles
+      const team = data.teamMembers.map(tm => {
+        const emp = employees.find(e => e.id === tm.id);
+        if (!emp) throw new Error(`Employee with ID ${tm.id} not found`);
+        return {
+          ...emp,
+          role: tm.role // Override the employee's original role with the selected role for this POC
+        };
+      });
       
       // Prepare customer data
       const customer = customers.find(c => c.id === data.customerId);
@@ -198,14 +205,12 @@ const PocFormPage: React.FC = () => {
         // Update existing POC
         const updateData = {
           title: data.title,
-          description: data.description,
           status: data.status,
           technology: data.technology,
           leadId: data.leadId,
           accountManagerId: data.accountManagerId,
           team,
-          endDate: data.endDate || undefined,
-          tags: data.tags
+          endDate: data.endDate || undefined
         };
         
         const updatedPoc = await updatePoc(id, updateData);
@@ -223,7 +228,7 @@ const PocFormPage: React.FC = () => {
         // Create new POC
         const newPocData = {
           title: data.title,
-          description: data.description,
+          description: "N/A", // Provide a placeholder since description is required in the API
           status: data.status,
           technology: data.technology,
           customerId: data.customerId,
@@ -235,7 +240,7 @@ const PocFormPage: React.FC = () => {
           team,
           startDate: data.startDate,
           endDate: data.endDate || undefined,
-          tags: data.tags,
+          tags: [], // Empty array since we've removed tags
           comments: []
         };
         
@@ -254,34 +259,26 @@ const PocFormPage: React.FC = () => {
     }
   };
 
-  const addTag = () => {
-    if (!tagInput.trim()) return;
+  const toggleTeamMember = (employeeId: string, role: 'lead' | 'support') => {
+    const currentTeamMembers = [...watchTeamMembers];
+    const existingMemberIndex = currentTeamMembers.findIndex(m => m.id === employeeId);
     
-    const newTag = tagInput.trim();
-    if (!watchTags.includes(newTag)) {
-      form.setValue('tags', [...watchTags, newTag]);
-    }
-    setTagInput('');
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    form.setValue(
-      'tags',
-      watchTags.filter(tag => tag !== tagToRemove)
-    );
-  };
-
-  const toggleTeamMember = (employeeId: string) => {
-    const isSelected = watchTeamIds.includes(employeeId);
-    
-    if (isSelected) {
-      form.setValue(
-        'teamIds',
-        watchTeamIds.filter(id => id !== employeeId)
-      );
+    if (existingMemberIndex >= 0) {
+      // Update the role if the employee is already selected
+      currentTeamMembers[existingMemberIndex].role = role;
     } else {
-      form.setValue('teamIds', [...watchTeamIds, employeeId]);
+      // Add the new team member
+      currentTeamMembers.push({ id: employeeId, role });
     }
+    
+    form.setValue('teamMembers', currentTeamMembers);
+  };
+
+  const removeTeamMember = (employeeId: string) => {
+    form.setValue(
+      'teamMembers',
+      watchTeamMembers.filter(m => m.id !== employeeId)
+    );
   };
 
   const handleSetDate = (field: 'startDate' | 'endDate', date: Date | undefined) => {
@@ -347,66 +344,10 @@ const PocFormPage: React.FC = () => {
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name="description"
-                    rules={{ required: 'Description is required' }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Description</FormLabel>
-                        <FormControl>
-                          <Textarea rows={5} {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Tags
-                    </label>
-                    <div className="flex flex-wrap gap-2 mb-2">
-                      {watchTags.map((tag, index) => (
-                        <div 
-                          key={index} 
-                          className="bg-gray-100 text-gray-800 px-2 py-1 rounded-md flex items-center text-sm"
-                        >
-                          {tag}
-                          <button 
-                            type="button"
-                            onClick={() => removeTag(tag)}
-                            className="ml-1 text-gray-500 hover:text-gray-700"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                    <div className="flex space-x-2">
-                      <Input
-                        value={tagInput}
-                        onChange={(e) => setTagInput(e.target.value)}
-                        placeholder="Add a tag"
-                        className="flex-1"
-                        onKeyPress={(e) => {
-                          if (e.key === 'Enter') {
-                            e.preventDefault();
-                            addTag();
-                          }
-                        }}
-                      />
-                      <Button type="button" onClick={addTag}>
-                        Add
-                      </Button>
-                    </div>
-                  </div>
-
                   {isEditMode && (
                     <div>
                       <FormLabel>Add Comment</FormLabel>
-                      <Textarea
-                        rows={2}
+                      <Input
                         className="mt-1"
                         placeholder="Add a comment about this POC..."
                         value={commentText}
@@ -724,34 +665,65 @@ const PocFormPage: React.FC = () => {
                           {employees.map(emp => (
                             <div 
                               key={emp.id} 
-                              className="flex items-center justify-between p-3 hover:bg-gray-50 cursor-pointer"
-                              onClick={() => toggleTeamMember(emp.id)}
+                              className="p-3 hover:bg-gray-50 border-b border-gray-100"
                             >
-                              <div>
+                              <div className="mb-2">
                                 <p className="text-sm font-medium">{emp.name}</p>
                                 <p className="text-xs text-gray-500">{emp.role}</p>
                               </div>
-                              {watchTeamIds.includes(emp.id) ? (
-                                <Check className="h-4 w-4 text-green-500" />
-                              ) : null}
+                              <div className="flex justify-between gap-2">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className={`flex-1 ${
+                                    watchTeamMembers.find(m => m.id === emp.id && m.role === 'lead') ? 'bg-green-50 border-green-200' : ''
+                                  }`}
+                                  onClick={() => toggleTeamMember(emp.id, 'lead')}
+                                >
+                                  {watchTeamMembers.find(m => m.id === emp.id && m.role === 'lead') ? (
+                                    <Check className="h-3 w-3 mr-1" />
+                                  ) : null}
+                                  Lead
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className={`flex-1 ${
+                                    watchTeamMembers.find(m => m.id === emp.id && m.role === 'support') ? 'bg-blue-50 border-blue-200' : ''
+                                  }`}
+                                  onClick={() => toggleTeamMember(emp.id, 'support')}
+                                >
+                                  {watchTeamMembers.find(m => m.id === emp.id && m.role === 'support') ? (
+                                    <Check className="h-3 w-3 mr-1" />
+                                  ) : null}
+                                  Support
+                                </Button>
+                              </div>
                             </div>
                           ))}
                         </div>
                       </PopoverContent>
                     </Popover>
                     
-                    {watchTeamIds.length > 0 && (
+                    {watchTeamMembers.length > 0 && (
                       <div className="mt-2">
                         <p className="text-xs text-gray-500 mb-1">Selected Team Members:</p>
                         <div className="space-y-1">
-                          {watchTeamIds.map(id => {
-                            const emp = employees.find(e => e.id === id);
+                          {watchTeamMembers.map(member => {
+                            const emp = employees.find(e => e.id === member.id);
                             return emp ? (
-                              <div key={id} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-sm">
-                                <span>{emp.name}</span>
+                              <div key={member.id} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-sm">
+                                <div className="flex items-center">
+                                  <span>{emp.name}</span>
+                                  <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${
+                                    member.role === 'lead' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                                  }`}>
+                                    {member.role === 'lead' ? 'Lead' : 'Support'}
+                                  </span>
+                                </div>
                                 <button 
                                   type="button" 
-                                  onClick={() => toggleTeamMember(id)}
+                                  onClick={() => removeTeamMember(member.id)}
                                   className="text-gray-400 hover:text-gray-600"
                                 >
                                   <X className="h-4 w-4" />
