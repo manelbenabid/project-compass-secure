@@ -27,16 +27,32 @@ CREATE TABLE employees (
   job_title VARCHAR(100)
 );
 
--- Create pocs (Proof of Concepts) table
+-- Create customers table
+CREATE TABLE customers (
+  id SERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  contact_person VARCHAR(255) NOT NULL,
+  contact_email VARCHAR(255) NOT NULL,
+  contact_phone VARCHAR(50) NOT NULL,
+  industry VARCHAR(100) NOT NULL,
+  organization_type VARCHAR(50) NOT NULL
+);
+
+-- Create pocs (Proof of Concepts) table with updated fields
 CREATE TABLE pocs (
   id SERIAL PRIMARY KEY,
   title VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
-  status VARCHAR(50) NOT NULL,
+  status VARCHAR(100) NOT NULL,
+  technology VARCHAR(100) NOT NULL,
+  customer_id INTEGER REFERENCES customers(id),
+  lead_id INTEGER REFERENCES employees(id),
+  account_manager_id INTEGER REFERENCES employees(id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  end_time TIMESTAMP,
-  lead_id INTEGER REFERENCES employees(id)
+  start_date TIMESTAMP NOT NULL,
+  end_date TIMESTAMP,
+  comments TEXT[]
 );
 
 -- Create poc_tags table for tags
@@ -62,17 +78,6 @@ CREATE TABLE comments (
   author_id INTEGER REFERENCES employees(id)
 );
 
--- Create customers table
-CREATE TABLE customers (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  contact_person VARCHAR(255) NOT NULL,
-  contact_email VARCHAR(255) NOT NULL,
-  contact_phone VARCHAR(50) NOT NULL,
-  industry VARCHAR(100) NOT NULL,
-  organization_type VARCHAR(50) NOT NULL
-);
-
 -- Insert sample data for employees
 INSERT INTO employees (name, email, phone, work_extension, role, department, avatar, skills, certificates, location, status, job_title)
 VALUES 
@@ -82,12 +87,19 @@ VALUES
   ('Bob Brown', 'bob@company.com', NULL, NULL, 'developer', 'Engineering', 'https://i.pravatar.cc/150?img=4', NULL, NULL, NULL, NULL, NULL),
   ('Carol Williams', 'carol@company.com', NULL, NULL, 'account_manager', 'Sales', 'https://i.pravatar.cc/150?img=5', NULL, NULL, NULL, NULL, NULL);
 
--- Insert sample pocs
-INSERT INTO pocs (title, description, status, lead_id)
+-- Insert sample customers
+INSERT INTO customers (name, contact_person, contact_email, contact_phone, industry, organization_type)
 VALUES 
-  ('AI-Powered Customer Service Bot', 'Develop a proof of concept for an AI chatbot that can handle basic customer service inquiries.', 'in_progress', 2),
-  ('Blockchain-based Document Verification', 'Create a POC for verifying document authenticity using blockchain technology.', 'proposed', 1),
-  ('IoT Fleet Management System', 'Develop a system for tracking and managing delivery vehicles using IoT sensors.', 'completed', 2);
+  ('Acme Corporation', 'Wile E. Coyote', 'wcoyote@acme.com', '555-123-4567', 'Manufacturing', 'private'),
+  ('Wayne Enterprises', 'Bruce Wayne', 'bruce@wayne.com', '555-876-5432', 'Technology', 'private'),
+  ('City of Metropolis', 'Mayor Office', 'mayor@metropolis.gov', '555-789-0123', 'Government', 'governmental');
+
+-- Insert sample pocs with updated structure
+INSERT INTO pocs (title, description, status, technology, customer_id, lead_id, account_manager_id, start_date, end_date)
+VALUES 
+  ('AI-Powered Customer Service Bot', 'Develop a proof of concept for an AI chatbot that can handle basic customer service inquiries.', 'in progress', 'AppDynamics', 1, 2, 5, '2023-01-15', '2023-06-15'),
+  ('Blockchain-based Document Verification', 'Create a POC for verifying document authenticity using blockchain technology.', 'Account Manager coordinated with Tech Lead', 'security', 2, 1, 5, '2023-03-05', NULL),
+  ('IoT Fleet Management System', 'Develop a system for tracking and managing delivery vehicles using IoT sensors.', 'done', 'wireless', 3, 2, 5, '2022-10-20', '2023-02-28');
 
 -- Insert sample poc tags
 INSERT INTO poc_tags (poc_id, tag_name)
@@ -121,10 +133,3 @@ VALUES
   (2, 'Project proposal approved. Starting requirements gathering.', 1, '2023-03-05T09:30:00Z'),
   (3, 'All features implemented and tested. Ready for client demo.', 2, '2023-02-15T10:45:00Z'),
   (3, 'Client demo successful. POC approved for production development.', 5, '2023-02-28T15:10:00Z');
-
--- Insert sample customers
-INSERT INTO customers (name, contact_person, contact_email, contact_phone, industry, organization_type)
-VALUES 
-  ('Acme Corporation', 'Wile E. Coyote', 'wcoyote@acme.com', '555-123-4567', 'Manufacturing', 'private'),
-  ('Wayne Enterprises', 'Bruce Wayne', 'bruce@wayne.com', '555-876-5432', 'Technology', 'private'),
-  ('City of Metropolis', 'Mayor Office', 'mayor@metropolis.gov', '555-789-0123', 'Government', 'governmental');

@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import { UserRole, UserLocation, UserStatus } from '../contexts/AuthContext';
 import dbConnection from './dbConfig';
@@ -45,18 +46,51 @@ export interface Comment {
   };
 }
 
-export type PocStatus = 'proposed' | 'in_progress' | 'completed' | 'archived';
+export type PocStatus = 
+  | 'Account Manager coordinated with Tech Lead' 
+  | 'Tech Lead reached the customer' 
+  | 'Tech Lead assigned engineering team'
+  | 'kickoff is done & scopes defined'
+  | 'in progress'
+  | 'customer pending'
+  | 'Taqniyat pending'
+  | 'done'
+  | 'failed'
+  | 'proposed'
+  | 'in_progress'
+  | 'completed'
+  | 'archived';
+
+export type PocTechnology = 
+  | 'switching' 
+  | 'routers' 
+  | 'security'  
+  | 'wireless' 
+  | 'firewall' 
+  | 'access points' 
+  | 'webex communication' 
+  | 'ip phones'  
+  | 'AppDynamics' 
+  | 'Security' 
+  | 'Splunk' 
+  | 'Webex Room Kits';
 
 export interface Poc {
   id: string;
   title: string;
   description: string;
   status: PocStatus;
+  technology: PocTechnology;
+  customerId: string;
+  customer?: Customer;
+  startDate: string;
+  endDate?: string;
   createdAt: string;
   updatedAt: string;
-  endTime?: string;
   leadId: string;
+  accountManagerId: string;
   lead?: Employee;
+  accountManager?: Employee;
   team: Employee[];
   comments: Comment[];
   tags: string[];
@@ -133,16 +167,53 @@ const mockEmployees: Employee[] = [
   }
 ];
 
+const mockCustomers: Customer[] = [
+  {
+    id: '1',
+    name: 'Acme Corporation',
+    contact_person: 'Wile E. Coyote',
+    contact_email: 'wcoyote@acme.com',
+    contact_phone: '555-123-4567',
+    industry: 'Manufacturing',
+    organization_type: 'private'
+  },
+  {
+    id: '2',
+    name: 'Wayne Enterprises',
+    contact_person: 'Bruce Wayne',
+    contact_email: 'bruce@wayne.com',
+    contact_phone: '555-876-5432',
+    industry: 'Technology',
+    organization_type: 'private'
+  },
+  {
+    id: '3',
+    name: 'City of Metropolis',
+    contact_person: 'Mayor Office',
+    contact_email: 'mayor@metropolis.gov',
+    contact_phone: '555-789-0123',
+    industry: 'Government',
+    organization_type: 'governmental'
+  }
+];
+
 const mockPocs: Poc[] = [
   {
     id: '1',
     title: 'AI-Powered Customer Service Bot',
     description: 'Develop a proof of concept for an AI chatbot that can handle basic customer service inquiries.',
-    status: 'in_progress',
+    status: 'in progress',
+    technology: 'AppDynamics',
+    customerId: '1',
+    customer: mockCustomers[0],
+    startDate: '2023-01-15T00:00:00Z',
+    endDate: '2023-06-15T00:00:00Z',
     createdAt: '2023-01-15T10:30:00Z',
     updatedAt: '2023-03-20T14:45:00Z',
-    endTime: '2023-06-15T10:30:00Z',
     leadId: '2',
+    accountManagerId: '5',
+    lead: mockEmployees[1],
+    accountManager: mockEmployees[4],
     team: [mockEmployees[0], mockEmployees[2], mockEmployees[3]],
     comments: [
       {
@@ -174,10 +245,17 @@ const mockPocs: Poc[] = [
     id: '2',
     title: 'Blockchain-based Document Verification',
     description: 'Create a POC for verifying document authenticity using blockchain technology.',
-    status: 'proposed',
+    status: 'Account Manager coordinated with Tech Lead',
+    technology: 'security',
+    customerId: '2',
+    customer: mockCustomers[1],
+    startDate: '2023-03-05T00:00:00Z',
     createdAt: '2023-03-05T08:45:00Z',
     updatedAt: '2023-03-05T08:45:00Z',
     leadId: '1',
+    accountManagerId: '5',
+    lead: mockEmployees[0],
+    accountManager: mockEmployees[4],
     team: [mockEmployees[1], mockEmployees[3]],
     comments: [
       {
@@ -198,10 +276,18 @@ const mockPocs: Poc[] = [
     id: '3',
     title: 'IoT Fleet Management System',
     description: 'Develop a system for tracking and managing delivery vehicles using IoT sensors.',
-    status: 'completed',
+    status: 'done',
+    technology: 'wireless',
+    customerId: '3',
+    customer: mockCustomers[2],
+    startDate: '2022-10-20T00:00:00Z',
+    endDate: '2023-02-28T00:00:00Z',
     createdAt: '2022-10-20T13:15:00Z',
     updatedAt: '2023-02-28T15:10:00Z',
     leadId: '2',
+    accountManagerId: '5',
+    lead: mockEmployees[1],
+    accountManager: mockEmployees[4],
     team: [mockEmployees[0], mockEmployees[2]],
     comments: [
       {
@@ -231,36 +317,6 @@ const mockPocs: Poc[] = [
   }
 ];
 
-const mockCustomers: Customer[] = [
-  {
-    id: '1',
-    name: 'Acme Corporation',
-    contact_person: 'Wile E. Coyote',
-    contact_email: 'wcoyote@acme.com',
-    contact_phone: '555-123-4567',
-    industry: 'Manufacturing',
-    organization_type: 'private'
-  },
-  {
-    id: '2',
-    name: 'Wayne Enterprises',
-    contact_person: 'Bruce Wayne',
-    contact_email: 'bruce@wayne.com',
-    contact_phone: '555-876-5432',
-    industry: 'Technology',
-    organization_type: 'private'
-  },
-  {
-    id: '3',
-    name: 'City of Metropolis',
-    contact_person: 'Mayor Office',
-    contact_email: 'mayor@metropolis.gov',
-    contact_phone: '555-789-0123',
-    industry: 'Government',
-    organization_type: 'governmental'
-  }
-];
-
 // API methods with database integration
 export const getEmployees = async (): Promise<Employee[]> => {
   try {
@@ -276,6 +332,19 @@ export const getEmployees = async (): Promise<Employee[]> => {
     // Fallback to mock data if database connection fails
     console.log('Falling back to mock employee data');
     return mockEmployees;
+  }
+};
+
+export const getEmployeesByRole = async (role: UserRole): Promise<Employee[]> => {
+  try {
+    const result = await dbConnection.query('SELECT * FROM employees WHERE role = $1', [role]);
+    if (result.rows && result.rows.length > 0) {
+      return result.rows;
+    }
+    return mockEmployees.filter(emp => emp.role === role);
+  } catch (error) {
+    console.error(`Database error in getEmployeesByRole(${role}):`, error);
+    return mockEmployees.filter(emp => emp.role === role);
   }
 };
 
@@ -321,7 +390,26 @@ export const getPoc = async (id: string): Promise<Poc | null> => {
         p.*,
         json_agg(DISTINCT t) as team,
         json_agg(DISTINCT c) FILTER (WHERE c.id IS NOT NULL) as comments,
-        array_agg(DISTINCT pt.tag_name) FILTER (WHERE pt.tag_name IS NOT NULL) as tags
+        array_agg(DISTINCT pt.tag_name) FILTER (WHERE pt.tag_name IS NOT NULL) as tags,
+        cust.id as customer_id,
+        cust.name as customer_name,
+        cust.contact_person,
+        cust.contact_email,
+        cust.contact_phone,
+        cust.industry,
+        cust.organization_type,
+        lead.id as lead_id,
+        lead.name as lead_name,
+        lead.email as lead_email,
+        lead.role as lead_role,
+        lead.department as lead_department,
+        lead.avatar as lead_avatar,
+        am.id as account_manager_id,
+        am.name as account_manager_name,
+        am.email as account_manager_email,
+        am.role as account_manager_role,
+        am.department as account_manager_department,
+        am.avatar as account_manager_avatar
       FROM 
         pocs p
       LEFT JOIN 
@@ -330,10 +418,16 @@ export const getPoc = async (id: string): Promise<Poc | null> => {
         employees t ON pt.employee_id = t.id
       LEFT JOIN 
         comments c ON p.id = c.poc_id
+      LEFT JOIN
+        customers cust ON p.customer_id = cust.id
+      LEFT JOIN
+        employees lead ON p.lead_id = lead.id
+      LEFT JOIN
+        employees am ON p.account_manager_id = am.id
       WHERE 
         p.id = $1
       GROUP BY 
-        p.id
+        p.id, cust.id, lead.id, am.id
     `, [id]);
     
     if (result.rows.length === 0) {
@@ -341,8 +435,43 @@ export const getPoc = async (id: string): Promise<Poc | null> => {
     }
     
     const poc = result.rows[0];
+    
+    // Build customer object from joined data
+    const customer = {
+      id: poc.customer_id,
+      name: poc.customer_name,
+      contact_person: poc.contact_person,
+      contact_email: poc.contact_email,
+      contact_phone: poc.contact_phone,
+      industry: poc.industry,
+      organization_type: poc.organization_type
+    };
+    
+    // Build lead object from joined data
+    const lead = {
+      id: poc.lead_id,
+      name: poc.lead_name,
+      email: poc.lead_email,
+      role: poc.lead_role,
+      department: poc.lead_department,
+      avatar: poc.lead_avatar
+    };
+    
+    // Build account manager object from joined data
+    const accountManager = {
+      id: poc.account_manager_id,
+      name: poc.account_manager_name,
+      email: poc.account_manager_email,
+      role: poc.account_manager_role,
+      department: poc.account_manager_department,
+      avatar: poc.account_manager_avatar
+    };
+    
     return {
       ...poc,
+      customer,
+      lead,
+      accountManager,
       team: poc.team[0] ? poc.team : [],
       comments: poc.comments[0] ? poc.comments : [],
       tags: poc.tags || []
@@ -361,10 +490,30 @@ export const createPoc = async (poc: Omit<Poc, 'id' | 'createdAt' | 'updatedAt'>
     
     // Insert POC
     const pocResult = await dbConnection.query(`
-      INSERT INTO pocs (title, description, status, lead_id, end_time)
-      VALUES ($1, $2, $3, $4, $5)
-      RETURNING id, title, description, status, created_at, updated_at, end_time, lead_id
-    `, [poc.title, poc.description, poc.status, poc.leadId, poc.endTime]);
+      INSERT INTO pocs (
+        title, 
+        description, 
+        status, 
+        technology,
+        customer_id, 
+        lead_id,
+        account_manager_id,
+        start_date,
+        end_date
+      )
+      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+      RETURNING id, title, description, status, technology, customer_id, lead_id, account_manager_id, created_at, updated_at, start_date, end_date
+    `, [
+      poc.title, 
+      poc.description, 
+      poc.status, 
+      poc.technology,
+      poc.customerId,
+      poc.leadId,
+      poc.accountManagerId,
+      poc.startDate,
+      poc.endDate
+    ]);
     
     const newPoc = pocResult.rows[0];
     const pocId = newPoc.id;
@@ -404,11 +553,16 @@ export const createPoc = async (poc: Omit<Poc, 'id' | 'createdAt' | 'updatedAt'>
     return {
       ...newPoc,
       id: pocId,
+      customerId: newPoc.customer_id,
+      leadId: newPoc.lead_id,
+      accountManagerId: newPoc.account_manager_id,
       createdAt: newPoc.created_at,
       updatedAt: newPoc.updated_at,
-      endTime: newPoc.end_time,
-      leadId: newPoc.lead_id,
+      startDate: newPoc.start_date,
+      endDate: newPoc.end_date,
       lead: poc.lead,
+      accountManager: poc.accountManager,
+      customer: poc.customer,
       team: poc.team || [],
       comments: [],
       tags: poc.tags || []
@@ -454,14 +608,24 @@ export const updatePoc = async (id: string, poc: Partial<Poc>): Promise<Poc | nu
       values.push(poc.status);
     }
     
+    if (poc.technology !== undefined) {
+      updateFields.push(`technology = $${paramCount++}`);
+      values.push(poc.technology);
+    }
+    
     if (poc.leadId !== undefined) {
       updateFields.push(`lead_id = $${paramCount++}`);
       values.push(poc.leadId);
     }
     
-    if (poc.endTime !== undefined) {
-      updateFields.push(`end_time = $${paramCount++}`);
-      values.push(poc.endTime);
+    if (poc.accountManagerId !== undefined) {
+      updateFields.push(`account_manager_id = $${paramCount++}`);
+      values.push(poc.accountManagerId);
+    }
+    
+    if (poc.endDate !== undefined) {
+      updateFields.push(`end_date = $${paramCount++}`);
+      values.push(poc.endDate);
     }
     
     // Always update the updated_at timestamp
