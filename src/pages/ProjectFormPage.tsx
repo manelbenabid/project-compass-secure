@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -51,7 +50,7 @@ import {
   FileCheck,
 } from 'lucide-react';
 
-import { getCustomers, getEmployees, getProject, createProject, updateProject, ProjectTechnology, ProjectStatus } from '../services/api';
+import { getCustomers, getEmployees, getProject, createProject, updateProject, ProjectTechnology, ProjectStatus, Employee, addComment } from '../services/api';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -118,7 +117,7 @@ const ProjectFormPage: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [customers, setCustomers] = useState<{ id: string; name: string }[]>([]);
-  const [employees, setEmployees] = useState<{ id: string; name: string; role: string }[]>([]);
+  const [employees, setEmployees] = useState<Employee[]>([]);
 
   // Initialize form
   const form = useForm<FormValues>({
@@ -149,11 +148,7 @@ const ProjectFormPage: React.FC = () => {
         
         // Fetch employees
         const employeesData = await getEmployees();
-        setEmployees(employeesData.map(e => ({ 
-          id: e.id, 
-          name: e.name, 
-          role: e.role 
-        })));
+        setEmployees(employeesData);
         
         // If editing, fetch project details
         if (isEditing && id) {
@@ -197,10 +192,10 @@ const ProjectFormPage: React.FC = () => {
     try {
       setIsSaving(true);
 
-      // Prepare team members
-      const team = values.teamIds ? employees
-        .filter(e => values.teamIds?.includes(e.id))
-        .map(e => ({ id: e.id, name: e.name, role: e.role })) : [];
+      // Create full Employee objects for the team members
+      const team: Employee[] = values.teamIds 
+        ? employees.filter(e => values.teamIds?.includes(e.id))
+        : [];
 
       // Prepare data for API
       const projectData = {
@@ -669,8 +664,5 @@ const ProjectFormPage: React.FC = () => {
     </AppLayout>
   );
 };
-
-// Add missing async import for consistency
-import { addComment } from '../services/api';
 
 export default ProjectFormPage;
