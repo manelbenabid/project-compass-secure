@@ -35,8 +35,7 @@ export interface Employee {
 
 export interface Comment {
   id: string;
-  pocId?: string;
-  projectId?: string;
+  pocId: string;
   text: string;
   createdAt: string;
   author: {
@@ -61,50 +60,6 @@ export interface Poc {
   team: Employee[];
   comments: Comment[];
   tags: string[];
-}
-
-export type ProjectTechnology = 
-  | 'switching' 
-  | 'routers' 
-  | 'security' 
-  | 'wireless' 
-  | 'firewall' 
-  | 'access points' 
-  | 'webex communication' 
-  | 'ip phones' 
-  | 'AppDynamics' 
-  | 'Splunk' 
-  | 'Webex Room Kits';
-
-export type ProjectStatus = 
-  | 'Account Manager coordinated with Tech Lead'
-  | 'Teach Lead reach the customer'
-  | 'Tech Lead assigned engineering team'
-  | 'kickoff is done & scopes defined'
-  | 'in progress'
-  | 'customer pending'
-  | 'Taqniyat pending'
-  | 'done'
-  | 'failed';
-
-export interface Project {
-  id: string;
-  pocId?: string;
-  customerId: string;
-  customer?: Customer;
-  title: string;
-  technology: ProjectTechnology;
-  status: ProjectStatus;
-  leadId: string;
-  lead?: Employee;
-  accountManagerId: string;
-  accountManager?: Employee;
-  team: Employee[];
-  startDate: string;
-  endDate?: string;
-  createdAt: string;
-  updatedAt: string;
-  comments: Comment[];
 }
 
 export type CustomerType = 'private' | 'governmental' | 'semi-private';
@@ -303,51 +258,6 @@ const mockCustomers: Customer[] = [
     contact_phone: '555-789-0123',
     industry: 'Government',
     organization_type: 'governmental'
-  }
-];
-
-const mockProjects: Project[] = [
-  {
-    id: '1',
-    pocId: '3',
-    customerId: '1',
-    customer: mockCustomers[0],
-    title: 'Enterprise IoT Fleet Management System',
-    technology: 'security',
-    status: 'in progress',
-    leadId: '2',
-    lead: mockEmployees[1],
-    accountManagerId: '5',
-    accountManager: mockEmployees[4],
-    team: [mockEmployees[0], mockEmployees[2], mockEmployees[3]],
-    startDate: '2023-03-10T00:00:00Z',
-    endDate: '2023-09-30T00:00:00Z',
-    createdAt: '2023-03-10T00:00:00Z',
-    updatedAt: '2023-03-10T00:00:00Z',
-    comments: [
-      {
-        id: '101',
-        projectId: '1',
-        text: 'Kickoff meeting completed with the client. Project requirements finalized.',
-        createdAt: '2023-03-15T10:00:00Z',
-        author: {
-          id: '5',
-          name: 'Carol Williams',
-          avatar: 'https://i.pravatar.cc/150?img=5'
-        }
-      },
-      {
-        id: '102',
-        projectId: '1',
-        text: 'Architecture design approved. Starting development phase.',
-        createdAt: '2023-04-01T14:30:00Z',
-        author: {
-          id: '2',
-          name: 'John Doe',
-          avatar: 'https://i.pravatar.cc/150?img=2'
-        }
-      }
-    ]
   }
 ];
 
@@ -636,12 +546,7 @@ export const updatePoc = async (id: string, poc: Partial<Poc>): Promise<Poc | nu
   }
 };
 
-export const addComment = async (
-  resourceId: string, 
-  text: string, 
-  authorId: string, 
-  resourceType: 'poc' | 'project' = 'poc'
-): Promise<Comment | null> => {
+export const addComment = async (pocId: string, text: string, authorId: string): Promise<Comment | null> => {
   try {
     // Get author info
     const authorResult = await dbConnection.query('SELECT id, name, avatar FROM employees WHERE id = $1', [authorId]);
@@ -651,27 +556,18 @@ export const addComment = async (
     
     const author = authorResult.rows[0];
     
-    // Insert comment based on resource type
-    let result;
-    if (resourceType === 'poc') {
-      result = await dbConnection.query(`
-        INSERT INTO comments (poc_id, text, author_id)
-        VALUES ($1, $2, $3)
-        RETURNING id, poc_id as "resourceId", text, created_at
-      `, [resourceId, text, authorId]);
-    } else {
-      result = await dbConnection.query(`
-        INSERT INTO comments (project_id, text, author_id)
-        VALUES ($1, $2, $3)
-        RETURNING id, project_id as "resourceId", text, created_at
-      `, [resourceId, text, authorId]);
-    }
+    // Insert comment
+    const result = await dbConnection.query(`
+      INSERT INTO comments (poc_id, text, author_id)
+      VALUES ($1, $2, $3)
+      RETURNING id, poc_id, text, created_at
+    `, [pocId, text, authorId]);
     
     const comment = result.rows[0];
     
     return {
       id: comment.id,
-      [resourceType === 'poc' ? 'pocId' : 'projectId']: comment.resourceId,
+      pocId: comment.poc_id,
       text: comment.text,
       createdAt: comment.created_at,
       author: {
@@ -681,52 +577,29 @@ export const addComment = async (
       }
     };
   } catch (error) {
-    console.error(`Database error in addComment(${resourceId}, ${authorId}):`, error);
+    console.error(`Database error in addComment(${pocId}, ${authorId}):`, error);
     
     // Fallback to mock implementation
-    if (resourceType === 'poc') {
-      const poc = mockPocs.find(p => p.id === resourceId);
-      if (!poc) return null;
-      
-      const author = mockEmployees.find(e => e.id === authorId);
-      if (!author) return null;
-      
-      const newComment: Comment = {
-        id: `${Date.now()}`,
-        pocId: resourceId,
-        text,
-        createdAt: new Date().toISOString(),
-        author: {
-          id: author.id,
-          name: author.name,
-          avatar: author.avatar
-        }
-      };
-      
-      poc.comments.push(newComment);
-      return newComment;
-    } else {
-      const project = mockProjects.find(p => p.id === resourceId);
-      if (!project) return null;
-      
-      const author = mockEmployees.find(e => e.id === authorId);
-      if (!author) return null;
-      
-      const newComment: Comment = {
-        id: `${Date.now()}`,
-        projectId: resourceId,
-        text,
-        createdAt: new Date().toISOString(),
-        author: {
-          id: author.id,
-          name: author.name,
-          avatar: author.avatar
-        }
-      };
-      
-      project.comments.push(newComment);
-      return newComment;
-    }
+    const poc = mockPocs.find(p => p.id === pocId);
+    if (!poc) return null;
+    
+    const author = mockEmployees.find(e => e.id === authorId);
+    if (!author) return null;
+    
+    const newComment: Comment = {
+      id: `${Date.now()}`,
+      pocId,
+      text,
+      createdAt: new Date().toISOString(),
+      author: {
+        id: author.id,
+        name: author.name,
+        avatar: author.avatar
+      }
+    };
+    
+    poc.comments.push(newComment);
+    return newComment;
   }
 };
 
@@ -878,387 +751,6 @@ export const updateEmployeeInfo = async (id: string, data: Partial<Employee>): P
     };
     
     return mockEmployees[employeeIndex];
-  }
-};
-
-// Projects API methods
-export const getProjects = async (): Promise<Project[]> => {
-  try {
-    const result = await dbConnection.query(`
-      SELECT 
-        p.*,
-        c.name as customer_name,
-        c.contact_person as customer_contact_person,
-        c.contact_email as customer_contact_email,
-        c.contact_phone as customer_contact_phone,
-        c.industry as customer_industry,
-        c.organization_type as customer_organization_type,
-        el.name as lead_name,
-        el.avatar as lead_avatar,
-        el.email as lead_email,
-        el.role as lead_role,
-        ea.name as account_manager_name,
-        ea.avatar as account_manager_avatar,
-        ea.email as account_manager_email,
-        ea.role as account_manager_role,
-        json_agg(DISTINCT et) FILTER (WHERE et.id IS NOT NULL) as team,
-        json_agg(DISTINCT cm) FILTER (WHERE cm.id IS NOT NULL) as comments
-      FROM 
-        projects p
-      LEFT JOIN 
-        customers c ON p.customer_id = c.id
-      LEFT JOIN 
-        employees el ON p.lead_id = el.id
-      LEFT JOIN 
-        employees ea ON p.account_manager_id = ea.id
-      LEFT JOIN 
-        project_team pt ON p.id = pt.project_id
-      LEFT JOIN 
-        employees et ON pt.employee_id = et.id
-      LEFT JOIN 
-        comments cm ON p.id = cm.project_id
-      GROUP BY 
-        p.id, c.id, el.id, ea.id
-    `);
-    
-    const projects = result.rows.map(row => {
-      const customer = {
-        id: row.customer_id,
-        name: row.customer_name,
-        contact_person: row.customer_contact_person,
-        contact_email: row.customer_contact_email,
-        contact_phone: row.customer_contact_phone,
-        industry: row.customer_industry,
-        organization_type: row.customer_organization_type
-      };
-      
-      const lead = row.lead_id ? {
-        id: row.lead_id,
-        name: row.lead_name,
-        avatar: row.lead_avatar,
-        email: row.lead_email,
-        role: row.lead_role,
-        department: 'Engineering' // Default value, should be fetched from DB
-      } : undefined;
-      
-      const accountManager = row.account_manager_id ? {
-        id: row.account_manager_id,
-        name: row.account_manager_name,
-        avatar: row.account_manager_avatar,
-        email: row.account_manager_email,
-        role: row.account_manager_role,
-        department: 'Sales' // Default value, should be fetched from DB
-      } : undefined;
-
-      return {
-        id: row.id,
-        pocId: row.poc_id,
-        customerId: row.customer_id,
-        customer,
-        title: row.title,
-        technology: row.technology,
-        status: row.status,
-        leadId: row.lead_id,
-        lead,
-        accountManagerId: row.account_manager_id,
-        accountManager,
-        startDate: row.start_date,
-        endDate: row.end_date,
-        createdAt: row.created_at,
-        updatedAt: row.updated_at,
-        team: row.team && row.team[0] ? row.team.filter(Boolean) : [],
-        comments: row.comments && row.comments[0] ? row.comments.filter(Boolean).map(c => ({
-          id: c.id,
-          projectId: c.project_id,
-          text: c.text,
-          createdAt: c.created_at,
-          author: {
-            id: c.author_id,
-            name: c.author_name || 'Unknown',
-            avatar: c.author_avatar
-          }
-        })) : []
-      };
-    });
-    
-    return projects;
-  } catch (error) {
-    console.error('Database error in getProjects:', error);
-    console.log('Falling back to mock project data');
-    return mockProjects;
-  }
-};
-
-export const getProject = async (id: string): Promise<Project | null> => {
-  try {
-    const result = await dbConnection.query(`
-      SELECT 
-        p.*,
-        c.name as customer_name,
-        c.contact_person as customer_contact_person,
-        c.contact_email as customer_contact_email,
-        c.contact_phone as customer_contact_phone,
-        c.industry as customer_industry,
-        c.organization_type as customer_organization_type,
-        el.name as lead_name,
-        el.avatar as lead_avatar,
-        el.email as lead_email,
-        el.role as lead_role,
-        ea.name as account_manager_name,
-        ea.avatar as account_manager_avatar,
-        ea.email as account_manager_email,
-        ea.role as account_manager_role,
-        json_agg(DISTINCT et) FILTER (WHERE et.id IS NOT NULL) as team,
-        json_agg(DISTINCT cm) FILTER (WHERE cm.id IS NOT NULL) as comments
-      FROM 
-        projects p
-      LEFT JOIN 
-        customers c ON p.customer_id = c.id
-      LEFT JOIN 
-        employees el ON p.lead_id = el.id
-      LEFT JOIN 
-        employees ea ON p.account_manager_id = ea.id
-      LEFT JOIN 
-        project_team pt ON p.id = pt.project_id
-      LEFT JOIN 
-        employees et ON pt.employee_id = et.id
-      LEFT JOIN 
-        comments cm ON p.id = cm.project_id
-      WHERE 
-        p.id = $1
-      GROUP BY 
-        p.id, c.id, el.id, ea.id
-    `, [id]);
-    
-    if (result.rows.length === 0) {
-      return null;
-    }
-    
-    const row = result.rows[0];
-    
-    const customer = {
-      id: row.customer_id,
-      name: row.customer_name,
-      contact_person: row.customer_contact_person,
-      contact_email: row.customer_contact_email,
-      contact_phone: row.customer_contact_phone,
-      industry: row.customer_industry,
-      organization_type: row.customer_organization_type
-    };
-    
-    const lead = row.lead_id ? {
-      id: row.lead_id,
-      name: row.lead_name,
-      avatar: row.lead_avatar,
-      email: row.lead_email,
-      role: row.lead_role,
-      department: 'Engineering' // Default value, should be fetched from DB
-    } : undefined;
-    
-    const accountManager = row.account_manager_id ? {
-      id: row.account_manager_id,
-      name: row.account_manager_name,
-      avatar: row.account_manager_avatar,
-      email: row.account_manager_email,
-      role: row.account_manager_role,
-      department: 'Sales' // Default value, should be fetched from DB
-    } : undefined;
-
-    return {
-      id: row.id,
-      pocId: row.poc_id,
-      customerId: row.customer_id,
-      customer,
-      title: row.title,
-      technology: row.technology,
-      status: row.status,
-      leadId: row.lead_id,
-      lead,
-      accountManagerId: row.account_manager_id,
-      accountManager,
-      startDate: row.start_date,
-      endDate: row.end_date,
-      createdAt: row.created_at,
-      updatedAt: row.updated_at,
-      team: row.team && row.team[0] ? row.team.filter(Boolean) : [],
-      comments: row.comments && row.comments[0] ? row.comments.filter(Boolean).map(c => ({
-        id: c.id,
-        projectId: c.project_id,
-        text: c.text,
-        createdAt: c.created_at,
-        author: {
-          id: c.author_id,
-          name: c.author_name || 'Unknown',
-          avatar: c.author_avatar
-        }
-      })) : []
-    };
-  } catch (error) {
-    console.error(`Database error in getProject(${id}):`, error);
-    const project = mockProjects.find(p => p.id === id);
-    return project || null;
-  }
-};
-
-export const createProject = async (project: Omit<Project, 'id' | 'createdAt' | 'updatedAt' | 'comments'>): Promise<Project> => {
-  try {
-    // Begin transaction
-    await dbConnection.query('BEGIN');
-    
-    // Insert project
-    const projectResult = await dbConnection.query(`
-      INSERT INTO projects (poc_id, customer_id, title, technology, status, lead_id, account_manager_id, start_date, end_date)
-      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-      RETURNING id, poc_id, customer_id, title, technology, status, lead_id, account_manager_id, start_date, end_date, created_at, updated_at
-    `, [
-      project.pocId || null, 
-      project.customerId, 
-      project.title, 
-      project.technology, 
-      project.status, 
-      project.leadId, 
-      project.accountManagerId, 
-      project.startDate, 
-      project.endDate || null
-    ]);
-    
-    const newProject = projectResult.rows[0];
-    const projectId = newProject.id;
-    
-    // Insert team members
-    if (project.team && project.team.length > 0) {
-      const teamValues = project.team.map((member, index) => 
-        `($1, $${index + 2})`
-      ).join(', ');
-      
-      const teamParams = [projectId, ...project.team.map(member => member.id)];
-      
-      await dbConnection.query(`
-        INSERT INTO project_team (project_id, employee_id)
-        VALUES ${teamValues}
-      `, teamParams);
-    }
-    
-    // Commit transaction
-    await dbConnection.query('COMMIT');
-    
-    // Get the full project with relations
-    return getProject(projectId) as Promise<Project>;
-  } catch (error) {
-    // Rollback transaction on error
-    await dbConnection.query('ROLLBACK');
-    console.error('Database error in createProject:', error);
-    
-    // Fallback to mock implementation
-    const newProject: Project = {
-      ...project,
-      id: `${mockProjects.length + 1}`,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      comments: []
-    };
-    mockProjects.push(newProject);
-    return newProject;
-  }
-};
-
-export const updateProject = async (id: string, project: Partial<Project>): Promise<Project | null> => {
-  try {
-    // Start with building the update fields
-    const updateFields: string[] = [];
-    const values: any[] = [];
-    let paramCount = 1;
-    
-    // Build the SET clause dynamically based on the provided fields
-    if (project.title !== undefined) {
-      updateFields.push(`title = $${paramCount++}`);
-      values.push(project.title);
-    }
-    
-    if (project.technology !== undefined) {
-      updateFields.push(`technology = $${paramCount++}`);
-      values.push(project.technology);
-    }
-    
-    if (project.status !== undefined) {
-      updateFields.push(`status = $${paramCount++}`);
-      values.push(project.status);
-    }
-    
-    if (project.leadId !== undefined) {
-      updateFields.push(`lead_id = $${paramCount++}`);
-      values.push(project.leadId);
-    }
-    
-    if (project.accountManagerId !== undefined) {
-      updateFields.push(`account_manager_id = $${paramCount++}`);
-      values.push(project.accountManagerId);
-    }
-    
-    if (project.endDate !== undefined) {
-      updateFields.push(`end_date = $${paramCount++}`);
-      values.push(project.endDate);
-    }
-    
-    // Always update the updated_at timestamp
-    updateFields.push(`updated_at = NOW()`);
-    
-    // Add the id parameter
-    values.push(id);
-    
-    // Begin transaction
-    await dbConnection.query('BEGIN');
-    
-    // Update project
-    if (updateFields.length > 0) {
-      await dbConnection.query(`
-        UPDATE projects
-        SET ${updateFields.join(', ')}
-        WHERE id = $${paramCount}
-      `, values);
-    }
-    
-    // Update team members if provided
-    if (project.team !== undefined) {
-      // Delete existing team members
-      await dbConnection.query('DELETE FROM project_team WHERE project_id = $1', [id]);
-      
-      // Insert new team members
-      if (project.team.length > 0) {
-        const teamValues = project.team.map((member, index) => 
-          `($1, $${index + 2})`
-        ).join(', ');
-        
-        const teamParams = [id, ...project.team.map(member => member.id)];
-        
-        await dbConnection.query(`
-          INSERT INTO project_team (project_id, employee_id)
-          VALUES ${teamValues}
-        `, teamParams);
-      }
-    }
-    
-    // Commit transaction
-    await dbConnection.query('COMMIT');
-    
-    // Get the updated project
-    return getProject(id);
-  } catch (error) {
-    // Rollback transaction on error
-    await dbConnection.query('ROLLBACK');
-    console.error(`Database error in updateProject(${id}):`, error);
-    
-    // Fallback to mock implementation
-    const projectIndex = mockProjects.findIndex(p => p.id === id);
-    if (projectIndex === -1) return null;
-    
-    mockProjects[projectIndex] = {
-      ...mockProjects[projectIndex],
-      ...project,
-      updatedAt: new Date().toISOString()
-    };
-    
-    return mockProjects[projectIndex];
   }
 };
 

@@ -6,8 +6,6 @@
 DROP TABLE IF EXISTS comments;
 DROP TABLE IF EXISTS poc_team;
 DROP TABLE IF EXISTS poc_tags;
-DROP TABLE IF EXISTS project_team;
-DROP TABLE IF EXISTS projects;
 DROP TABLE IF EXISTS pocs;
 DROP TABLE IF EXISTS employees;
 DROP TABLE IF EXISTS customers;
@@ -41,29 +39,6 @@ CREATE TABLE pocs (
   lead_id INTEGER REFERENCES employees(id)
 );
 
--- Create projects table (for POCs that became actual projects)
-CREATE TABLE projects (
-  id SERIAL PRIMARY KEY,
-  poc_id INTEGER REFERENCES pocs(id),
-  customer_id INTEGER NOT NULL REFERENCES customers(id),
-  title VARCHAR(255) NOT NULL,
-  technology VARCHAR(100) NOT NULL,
-  status VARCHAR(100) NOT NULL,
-  lead_id INTEGER REFERENCES employees(id),
-  account_manager_id INTEGER REFERENCES employees(id),
-  start_date TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  end_date TIMESTAMP,
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create project_team table for project team members
-CREATE TABLE project_team (
-  project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
-  employee_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
-  PRIMARY KEY (project_id, employee_id)
-);
-
 -- Create poc_tags table for tags
 CREATE TABLE poc_tags (
   poc_id INTEGER REFERENCES pocs(id) ON DELETE CASCADE,
@@ -82,7 +57,6 @@ CREATE TABLE poc_team (
 CREATE TABLE comments (
   id SERIAL PRIMARY KEY,
   poc_id INTEGER REFERENCES pocs(id) ON DELETE CASCADE,
-  project_id INTEGER REFERENCES projects(id) ON DELETE CASCADE,
   text TEXT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   author_id INTEGER REFERENCES employees(id)
@@ -154,22 +128,3 @@ VALUES
   ('Acme Corporation', 'Wile E. Coyote', 'wcoyote@acme.com', '555-123-4567', 'Manufacturing', 'private'),
   ('Wayne Enterprises', 'Bruce Wayne', 'bruce@wayne.com', '555-876-5432', 'Technology', 'private'),
   ('City of Metropolis', 'Mayor Office', 'mayor@metropolis.gov', '555-789-0123', 'Government', 'governmental');
-
--- Insert sample projects
-INSERT INTO projects (poc_id, customer_id, title, technology, status, lead_id, account_manager_id, start_date, end_date)
-VALUES
-  (3, 1, 'Enterprise IoT Fleet Management System', 'Security', 'in progress', 2, 5, '2023-03-10T00:00:00Z', '2023-09-30T00:00:00Z');
-
--- Insert sample project team members
-INSERT INTO project_team (project_id, employee_id)
-VALUES
-  (1, 1),
-  (1, 3),
-  (1, 4);
-
--- Insert sample project comments
-INSERT INTO comments (project_id, text, author_id, created_at)
-VALUES
-  (1, 'Kickoff meeting completed with the client. Project requirements finalized.', 5, '2023-03-15T10:00:00Z'),
-  (1, 'Architecture design approved. Starting development phase.', 2, '2023-04-01T14:30:00Z');
-

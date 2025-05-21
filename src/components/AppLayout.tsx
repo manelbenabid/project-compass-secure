@@ -11,7 +11,7 @@ import {
   X,
   User,
   Building,
-  FileCheck
+  Phone
 } from 'lucide-react';
 
 import { Button } from "@/components/ui/button";
@@ -40,7 +40,6 @@ const AppLayout: React.FC<AppLayoutProps> = ({ children }) => {
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
     { name: 'POCs', href: '/pocs', icon: FileCode },
-    { name: 'Projects', href: '/projects', icon: FileCheck },
     { name: 'My Info', href: '/my-info', icon: User },
     { 
       name: 'Employees', 
