@@ -1,3 +1,4 @@
+
 import axios from 'axios';
 import { UserRole, UserLocation, UserStatus } from '../contexts/AuthContext';
 import dbConnection from './dbConfig';
@@ -23,7 +24,7 @@ export interface Employee {
   email: string;
   phone?: string;
   workExtension?: string;
-  role: UserRole;
+  role: UserRole | 'lead' | 'support'; // Updated to accept POC team roles
   department: string;
   avatar?: string;
   skills?: string[];
@@ -31,6 +32,11 @@ export interface Employee {
   location?: UserLocation;
   status?: UserStatus;
   jobTitle?: string;
+}
+
+// Type for team members in POCs
+export interface PocTeamMember extends Employee {
+  role: 'lead' | 'support';
 }
 
 export interface Comment {
