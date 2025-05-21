@@ -351,65 +351,218 @@ const PocFormPage: React.FC = () => {
 
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Basic Information</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="title"
-                    rules={{ required: 'Title is required' }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Title</FormLabel>
+          <div className="space-y-6 max-w-3xl mx-auto">
+            {/* Basic Information Card - Now with Customer */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Basic Information</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="title"
+                  rules={{ required: 'Title is required' }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Title</FormLabel>
+                      <FormControl>
+                        <Input {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                
+                <FormField
+                  control={form.control}
+                  name="customerId"
+                  rules={{ required: 'Customer is required' }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Customer</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                        disabled={isEditMode} // Customer cannot be changed in edit mode
+                      >
                         <FormControl>
-                          <Input {...field} />
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select customer" />
+                          </SelectTrigger>
                         </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
+                        <SelectContent>
+                          {customers.map(customer => (
+                            <SelectItem key={customer.id} value={customer.id}>
+                              {customer.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {isEditMode && (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <div className="flex items-center mt-1 text-xs text-amber-600">
+                                <Info className="h-3 w-3 mr-1" />
+                                Customer cannot be changed after creation
+                              </div>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>Customer assignment is permanent and cannot be modified</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      )}
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {isEditMode && (
+                  <div>
+                    <FormLabel>Add Comment</FormLabel>
+                    <Input
+                      className="mt-1"
+                      placeholder="Add a comment about this POC..."
+                      value={commentText}
+                      onChange={(e) => {
+                        setCommentText(e.target.value);
+                        form.setValue('comment', e.target.value);
+                      }}
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Status & Details Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Status & Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="status"
+                  rules={{ required: 'Status is required' }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="Account Manager coordinated with Tech Lead">
+                            Account Manager coordinated with Tech Lead
+                          </SelectItem>
+                          <SelectItem value="Tech Lead reached the customer">
+                            Tech Lead reached the customer
+                          </SelectItem>
+                          <SelectItem value="Tech Lead assigned engineering team">
+                            Tech Lead assigned engineering team
+                          </SelectItem>
+                          <SelectItem value="Kickoff is done & scopes defined">
+                            Kickoff is done & scopes defined
+                          </SelectItem>
+                          <SelectItem value="In progress">In progress</SelectItem>
+                          <SelectItem value="Customer pending">Customer pending</SelectItem>
+                          <SelectItem value="Taqniyat pending">Taqniyat pending</SelectItem>
+                          <SelectItem value="Done">Done</SelectItem>
+                          <SelectItem value="Failed">Failed</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="technology"
+                  rules={{ required: 'Technology is required' }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Technology</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select technology" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="switching">Switching</SelectItem>
+                          <SelectItem value="routers">Routers</SelectItem>
+                          <SelectItem value="security">Security</SelectItem>
+                          <SelectItem value="wireless">Wireless</SelectItem>
+                          <SelectItem value="firewall">Firewall</SelectItem>
+                          <SelectItem value="access points">Access Points</SelectItem>
+                          <SelectItem value="webex communication">Webex Communication</SelectItem>
+                          <SelectItem value="ip phones">IP Phones</SelectItem>
+                          <SelectItem value="AppDynamics">AppDynamics</SelectItem>
+                          <SelectItem value="Security">Security</SelectItem>
+                          <SelectItem value="Splunk">Splunk</SelectItem>
+                          <SelectItem value="Webex Room Kits">Webex Room Kits</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <FormField
                     control={form.control}
-                    name="customerId"
-                    rules={{ required: 'Customer is required' }}
+                    name="startDate"
+                    rules={{ required: 'Start date is required' }}
                     render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Customer</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          value={field.value}
-                          disabled={isEditMode} // Customer cannot be changed in edit mode
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select customer" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {customers.map(customer => (
-                              <SelectItem key={customer.id} value={customer.id}>
-                                {customer.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                      <FormItem className="flex flex-col">
+                        <FormLabel>Start Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={`w-full justify-start text-left font-normal ${
+                                !field.value ? 'text-muted-foreground' : ''
+                              }`}
+                              disabled={isEditMode} // Start date cannot be changed in edit mode
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {startDateVal ? format(startDateVal, 'PP') : <span>Pick a date</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={startDateVal}
+                              onSelect={(date) => handleSetDate('startDate', date)}
+                              initialFocus
+                              disabled={isEditMode} // Start date cannot be changed in edit mode
+                            />
+                          </PopoverContent>
+                        </Popover>
                         {isEditMode && (
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
                                 <div className="flex items-center mt-1 text-xs text-amber-600">
                                   <Info className="h-3 w-3 mr-1" />
-                                  Customer cannot be changed after creation
+                                  Start date cannot be changed
                                 </div>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Customer assignment is permanent and cannot be modified</p>
+                                <p>Start date is permanent and cannot be modified</p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -418,372 +571,219 @@ const PocFormPage: React.FC = () => {
                       </FormItem>
                     )}
                   />
+                  
+                  <FormField
+                    control={form.control}
+                    name="endDate"
+                    render={({ field }) => (
+                      <FormItem className="flex flex-col">
+                        <FormLabel>End Date</FormLabel>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={`w-full justify-start text-left font-normal ${
+                                !field.value ? 'text-muted-foreground' : ''
+                              }`}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {endDateVal ? format(endDateVal, 'PP') : <span>Pick a date</span>}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={endDateVal}
+                              onSelect={(date) => handleSetDate('endDate', date)}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-                  {isEditMode && (
-                    <div>
-                      <FormLabel>Add Comment</FormLabel>
-                      <Input
-                        className="mt-1"
-                        placeholder="Add a comment about this POC..."
-                        value={commentText}
-                        onChange={(e) => {
-                          setCommentText(e.target.value);
-                          form.setValue('comment', e.target.value);
-                        }}
-                      />
+            {/* Team Assignment Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Team Assignment</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="leadId"
+                  rules={{ required: 'Technical Lead is required' }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Technical Lead</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select lead" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {leads.map(lead => (
+                            <SelectItem key={lead.id} value={lead.id}>
+                              {lead.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="accountManagerId"
+                  rules={{ required: 'Account Manager is required' }}
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Account Manager</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select account manager" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {accountManagers.map(manager => (
+                            <SelectItem key={manager.id} value={manager.id}>
+                              {manager.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Team Members
+                  </label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between">
+                        Select Team Members
+                        <Plus className="h-4 w-4 ml-2" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 p-0" align="start">
+                      <div className="max-h-72 overflow-auto">
+                        {employees.map(emp => (
+                          <div 
+                            key={emp.id} 
+                            className="p-3 hover:bg-gray-50 border-b border-gray-100"
+                          >
+                            <div className="mb-2">
+                              <p className="text-sm font-medium">{emp.name}</p>
+                              <p className="text-xs text-gray-500">{emp.role}</p>
+                            </div>
+                            <div className="flex justify-between gap-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className={`flex-1 ${
+                                  watchTeamMembers.find(m => m.id === emp.id && m.role === 'lead') ? 'bg-green-50 border-green-200' : ''
+                                }`}
+                                onClick={() => toggleTeamMember(emp.id, 'lead')}
+                              >
+                                {watchTeamMembers.find(m => m.id === emp.id && m.role === 'lead') ? (
+                                  <Check className="h-3 w-3 mr-1" />
+                                ) : null}
+                                Lead
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="outline" 
+                                className={`flex-1 ${
+                                  watchTeamMembers.find(m => m.id === emp.id && m.role === 'support') ? 'bg-blue-50 border-blue-200' : ''
+                                }`}
+                                onClick={() => toggleTeamMember(emp.id, 'support')}
+                              >
+                                {watchTeamMembers.find(m => m.id === emp.id && m.role === 'support') ? (
+                                  <Check className="h-3 w-3 mr-1" />
+                                ) : null}
+                                Support
+                              </Button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                  
+                  {watchTeamMembers.length > 0 && (
+                    <div className="mt-2">
+                      <p className="text-xs text-gray-500 mb-1">Selected Team Members:</p>
+                      <div className="space-y-1">
+                        {watchTeamMembers.map(member => {
+                          const emp = employees.find(e => e.id === member.id);
+                          return emp ? (
+                            <div key={member.id} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-sm">
+                              <div className="flex items-center">
+                                <span>{emp.name}</span>
+                                <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${
+                                  member.role === 'lead' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
+                                }`}>
+                                  {member.role === 'lead' ? 'Lead' : 'Support'}
+                                </span>
+                              </div>
+                              <button 
+                                type="button" 
+                                onClick={() => removeTeamMember(member.id)}
+                                className="text-gray-400 hover:text-gray-600"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            </div>
+                          ) : null;
+                        })}
+                      </div>
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            </div>
+                </div>
+              </CardContent>
+            </Card>
 
-            <div className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Status & Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    rules={{ required: 'Status is required' }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select status" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="Account Manager coordinated with Tech Lead">
-                              Account Manager coordinated with Tech Lead
-                            </SelectItem>
-                            <SelectItem value="Tech Lead reached the customer">
-                              Tech Lead reached the customer
-                            </SelectItem>
-                            <SelectItem value="Tech Lead assigned engineering team">
-                              Tech Lead assigned engineering team
-                            </SelectItem>
-                            <SelectItem value="Kickoff is done & scopes defined">
-                              Kickoff is done & scopes defined
-                            </SelectItem>
-                            <SelectItem value="In progress">In progress</SelectItem>
-                            <SelectItem value="Customer pending">Customer pending</SelectItem>
-                            <SelectItem value="Taqniyat pending">Taqniyat pending</SelectItem>
-                            <SelectItem value="Done">Done</SelectItem>
-                            <SelectItem value="Failed">Failed</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="technology"
-                    rules={{ required: 'Technology is required' }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Technology</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select technology" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="switching">Switching</SelectItem>
-                            <SelectItem value="routers">Routers</SelectItem>
-                            <SelectItem value="security">Security</SelectItem>
-                            <SelectItem value="wireless">Wireless</SelectItem>
-                            <SelectItem value="firewall">Firewall</SelectItem>
-                            <SelectItem value="access points">Access Points</SelectItem>
-                            <SelectItem value="webex communication">Webex Communication</SelectItem>
-                            <SelectItem value="ip phones">IP Phones</SelectItem>
-                            <SelectItem value="AppDynamics">AppDynamics</SelectItem>
-                            <SelectItem value="Security">Security</SelectItem>
-                            <SelectItem value="Splunk">Splunk</SelectItem>
-                            <SelectItem value="Webex Room Kits">Webex Room Kits</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="startDate"
-                      rules={{ required: 'Start date is required' }}
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Start Date</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={`w-full justify-start text-left font-normal ${
-                                  !field.value ? 'text-muted-foreground' : ''
-                                }`}
-                                disabled={isEditMode} // Start date cannot be changed in edit mode
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {startDateVal ? format(startDateVal, 'PP') : <span>Pick a date</span>}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={startDateVal}
-                                onSelect={(date) => handleSetDate('startDate', date)}
-                                initialFocus
-                                disabled={isEditMode} // Start date cannot be changed in edit mode
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          {isEditMode && (
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="flex items-center mt-1 text-xs text-amber-600">
-                                    <Info className="h-3 w-3 mr-1" />
-                                    Start date cannot be changed
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Start date is permanent and cannot be modified</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          )}
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="endDate"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>End Date</FormLabel>
-                          <Popover>
-                            <PopoverTrigger asChild>
-                              <Button
-                                variant="outline"
-                                className={`w-full justify-start text-left font-normal ${
-                                  !field.value ? 'text-muted-foreground' : ''
-                                }`}
-                              >
-                                <CalendarIcon className="mr-2 h-4 w-4" />
-                                {endDateVal ? format(endDateVal, 'PP') : <span>Pick a date</span>}
-                              </Button>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-auto p-0" align="start">
-                              <Calendar
-                                mode="single"
-                                selected={endDateVal}
-                                onSelect={(date) => handleSetDate('endDate', date)}
-                                initialFocus
-                              />
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Team Assignment</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="leadId"
-                    rules={{ required: 'Technical Lead is required' }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Technical Lead</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select lead" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {leads.map(lead => (
-                              <SelectItem key={lead.id} value={lead.id}>
-                                {lead.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="accountManagerId"
-                    rules={{ required: 'Account Manager is required' }}
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Account Manager</FormLabel>
-                        <Select
-                          onValueChange={field.onChange}
-                          defaultValue={field.value}
-                          value={field.value}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select account manager" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {accountManagers.map(manager => (
-                              <SelectItem key={manager.id} value={manager.id}>
-                                {manager.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Team Members
-                    </label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full justify-between">
-                          Select Team Members
-                          <Plus className="h-4 w-4 ml-2" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-64 p-0" align="start">
-                        <div className="max-h-72 overflow-auto">
-                          {employees.map(emp => (
-                            <div 
-                              key={emp.id} 
-                              className="p-3 hover:bg-gray-50 border-b border-gray-100"
-                            >
-                              <div className="mb-2">
-                                <p className="text-sm font-medium">{emp.name}</p>
-                                <p className="text-xs text-gray-500">{emp.role}</p>
-                              </div>
-                              <div className="flex justify-between gap-2">
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className={`flex-1 ${
-                                    watchTeamMembers.find(m => m.id === emp.id && m.role === 'lead') ? 'bg-green-50 border-green-200' : ''
-                                  }`}
-                                  onClick={() => toggleTeamMember(emp.id, 'lead')}
-                                >
-                                  {watchTeamMembers.find(m => m.id === emp.id && m.role === 'lead') ? (
-                                    <Check className="h-3 w-3 mr-1" />
-                                  ) : null}
-                                  Lead
-                                </Button>
-                                <Button 
-                                  size="sm" 
-                                  variant="outline" 
-                                  className={`flex-1 ${
-                                    watchTeamMembers.find(m => m.id === emp.id && m.role === 'support') ? 'bg-blue-50 border-blue-200' : ''
-                                  }`}
-                                  onClick={() => toggleTeamMember(emp.id, 'support')}
-                                >
-                                  {watchTeamMembers.find(m => m.id === emp.id && m.role === 'support') ? (
-                                    <Check className="h-3 w-3 mr-1" />
-                                  ) : null}
-                                  Support
-                                </Button>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      </PopoverContent>
-                    </Popover>
-                    
-                    {watchTeamMembers.length > 0 && (
-                      <div className="mt-2">
-                        <p className="text-xs text-gray-500 mb-1">Selected Team Members:</p>
-                        <div className="space-y-1">
-                          {watchTeamMembers.map(member => {
-                            const emp = employees.find(e => e.id === member.id);
-                            return emp ? (
-                              <div key={member.id} className="flex items-center justify-between bg-gray-50 px-2 py-1 rounded text-sm">
-                                <div className="flex items-center">
-                                  <span>{emp.name}</span>
-                                  <span className={`ml-2 text-xs px-1.5 py-0.5 rounded ${
-                                    member.role === 'lead' ? 'bg-green-100 text-green-800' : 'bg-blue-100 text-blue-800'
-                                  }`}>
-                                    {member.role === 'lead' ? 'Lead' : 'Support'}
-                                  </span>
-                                </div>
-                                <button 
-                                  type="button" 
-                                  onClick={() => removeTeamMember(member.id)}
-                                  className="text-gray-400 hover:text-gray-600"
-                                >
-                                  <X className="h-4 w-4" />
-                                </button>
-                              </div>
-                            ) : null;
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardFooter className="pt-6">
-                  <div className="flex space-x-2 w-full">
-                    <Button 
-                      type="button" 
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => navigate(isEditMode ? `/pocs/${id}` : '/pocs')}
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      type="submit"
-                      className="flex-1"
-                      disabled={submitting}
-                    >
-                      {submitting ? 'Saving...' : isEditMode ? 'Update POC' : 'Create POC'}
-                    </Button>
-                  </div>
-                </CardFooter>
-              </Card>
-            </div>
+            {/* Submit buttons card */}
+            <Card>
+              <CardFooter className="pt-6">
+                <div className="flex space-x-2 w-full">
+                  <Button 
+                    type="button" 
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => navigate(isEditMode ? `/pocs/${id}` : '/pocs')}
+                  >
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit"
+                    className="flex-1"
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Saving...' : isEditMode ? 'Update POC' : 'Create POC'}
+                  </Button>
+                </div>
+              </CardFooter>
+            </Card>
           </div>
         </form>
       </Form>
