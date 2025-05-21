@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { UserRole, UserLocation, UserStatus } from '../contexts/AuthContext';
 import dbConnection from './dbConfig';
@@ -85,6 +84,7 @@ export interface Poc {
   customer?: Customer;
   startDate: string;
   endDate?: string;
+  endTime?: string; // Added endTime property to match usage in PocDetailPage
   createdAt: string;
   updatedAt: string;
   leadId: string;

@@ -52,6 +52,7 @@ CREATE TABLE pocs (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   start_date TIMESTAMP NOT NULL,
   end_date TIMESTAMP,
+  end_time TIMESTAMP, -- Added end_time field to match the endTime property
   comments TEXT[]
 );
 
@@ -94,12 +95,12 @@ VALUES
   ('Wayne Enterprises', 'Bruce Wayne', 'bruce@wayne.com', '555-876-5432', 'Technology', 'private'),
   ('City of Metropolis', 'Mayor Office', 'mayor@metropolis.gov', '555-789-0123', 'Government', 'governmental');
 
--- Insert sample pocs with updated structure
-INSERT INTO pocs (title, description, status, technology, customer_id, lead_id, account_manager_id, start_date, end_date)
+-- Insert sample pocs with updated structure including end_time
+INSERT INTO pocs (title, description, status, technology, customer_id, lead_id, account_manager_id, start_date, end_date, end_time)
 VALUES 
-  ('AI-Powered Customer Service Bot', 'Develop a proof of concept for an AI chatbot that can handle basic customer service inquiries.', 'in progress', 'AppDynamics', 1, 2, 5, '2023-01-15', '2023-06-15'),
-  ('Blockchain-based Document Verification', 'Create a POC for verifying document authenticity using blockchain technology.', 'Account Manager coordinated with Tech Lead', 'security', 2, 1, 5, '2023-03-05', NULL),
-  ('IoT Fleet Management System', 'Develop a system for tracking and managing delivery vehicles using IoT sensors.', 'done', 'wireless', 3, 2, 5, '2022-10-20', '2023-02-28');
+  ('AI-Powered Customer Service Bot', 'Develop a proof of concept for an AI chatbot that can handle basic customer service inquiries.', 'in progress', 'AppDynamics', 1, 2, 5, '2023-01-15', '2023-06-15', '2023-06-15T17:00:00Z'),
+  ('Blockchain-based Document Verification', 'Create a POC for verifying document authenticity using blockchain technology.', 'Account Manager coordinated with Tech Lead', 'security', 2, 1, 5, '2023-03-05', NULL, NULL),
+  ('IoT Fleet Management System', 'Develop a system for tracking and managing delivery vehicles using IoT sensors.', 'done', 'wireless', 3, 2, 5, '2022-10-20', '2023-02-28', '2023-02-28T15:30:00Z');
 
 -- Insert sample poc tags
 INSERT INTO poc_tags (poc_id, tag_name)
