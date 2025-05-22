@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useForm, Controller } from 'react-hook-form';
@@ -11,6 +10,7 @@ import {
   createPoc, 
   updatePoc, 
   addComment,
+  createCustomer,
   Poc, 
   Employee, 
   PocStatus, 
@@ -56,9 +56,22 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { Calendar } from "@/components/ui/calendar";
-import { X, ArrowLeft, Plus, Check, Calendar as CalendarIcon, Info } from 'lucide-react';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter } from "@/components/ui/dialog";
+import { X, ArrowLeft, Plus, Check, Calendar as CalendarIcon, Info, Building } from 'lucide-react';
 import { toast } from "sonner";
 
+// Define a form type for the new customer form
+interface CustomerFormData {
+  name: string;
+  website?: string;
+  contactPerson: string;
+  contactEmail: string;
+  contactPhone: string;
+  industry: string;
+  organizationType: string;
+}
+
+// The rest of the FormData interface remains the same
 interface FormData {
   title: string;
   status: PocStatus;
@@ -86,7 +99,9 @@ const PocFormPage: React.FC = () => {
   const [startDateVal, setStartDateVal] = useState<Date | undefined>(undefined);
   const [endDateVal, setEndDateVal] = useState<Date | undefined>(undefined);
   const [commentText, setCommentText] = useState('');
+  const [isNewCustomerDialogOpen, setIsNewCustomerDialogOpen] = useState(false);
   
+  // Form for the main POC
   const form = useForm<FormData>({
     defaultValues: {
       title: '',
@@ -99,6 +114,19 @@ const PocFormPage: React.FC = () => {
       startDate: '',
       endDate: '',
       comment: ''
+    }
+  });
+
+  // Form for the new customer
+  const customerForm = useForm<CustomerFormData>({
+    defaultValues: {
+      name: '',
+      website: '',
+      contactPerson: '',
+      contactEmail: '',
+      contactPhone: '',
+      industry: 'industry1',
+      organizationType: 'Private',
     }
   });
 
@@ -255,6 +283,40 @@ const PocFormPage: React.FC = () => {
     }
   };
 
+  const handleCustomerFormSubmit = async (data: CustomerFormData) => {
+    try {
+      // Create a new customer with the API
+      const newCustomer = await createCustomer({
+        name: data.name,
+        contact_person: data.contactPerson,
+        contact_email: data.contactEmail,
+        contact_phone: data.contactPhone,
+        industry: data.industry,
+        organization_type: data.organizationType,
+        website: data.website || ''
+      });
+
+      if (newCustomer) {
+        // Add the new customer to the local state
+        setCustomers(prevCustomers => [...prevCustomers, newCustomer]);
+        
+        // Set the new customer as the selected customer
+        form.setValue('customerId', newCustomer.id);
+        
+        // Reset the customer form
+        customerForm.reset();
+        
+        // Close the dialog
+        setIsNewCustomerDialogOpen(false);
+        
+        toast.success('Customer created successfully');
+      }
+    } catch (error) {
+      console.error('Error creating customer:', error);
+      toast.error('Failed to create customer');
+    }
+  };
+
   const toggleTeamMember = (employeeId: string, role: 'lead' | 'support') => {
     const currentTeamMembers = [...watchTeamMembers];
     const existingMemberIndex = currentTeamMembers.findIndex(m => m.id === employeeId);
@@ -352,10 +414,10 @@ const PocFormPage: React.FC = () => {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <div className="space-y-6 max-w-3xl mx-auto">
-            {/* Basic Information Card - Now with Customer */}
+            {/* Customer Details Card (Renamed from Basic Information) */}
             <Card>
               <CardHeader>
-                <CardTitle>Basic Information</CardTitle>
+                <CardTitle>Customer Details</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <FormField
@@ -380,25 +442,206 @@ const PocFormPage: React.FC = () => {
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Customer</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        value={field.value}
-                        disabled={isEditMode} // Customer cannot be changed in edit mode
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select customer" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {customers.map(customer => (
-                            <SelectItem key={customer.id} value={customer.id}>
-                              {customer.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <div className="space-y-2">
+                        <Select
+                          onValueChange={field.onChange}
+                          defaultValue={field.value}
+                          value={field.value}
+                          disabled={isEditMode} // Customer cannot be changed in edit mode
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select customer" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {customers.map(customer => (
+                              <SelectItem key={customer.id} value={customer.id}>
+                                {customer.name}
+                              </SelectItem>
+                            ))}
+                            {!isEditMode && (
+                              <div className="p-2">
+                                <Dialog open={isNewCustomerDialogOpen} onOpenChange={setIsNewCustomerDialogOpen}>
+                                  <DialogTrigger asChild>
+                                    <Button variant="ghost" className="w-full flex items-center justify-center">
+                                      <Plus className="h-4 w-4 mr-2" />
+                                      Add New Customer
+                                    </Button>
+                                  </DialogTrigger>
+                                  <DialogContent className="sm:max-w-[500px]">
+                                    <DialogHeader>
+                                      <DialogTitle>Add New Customer</DialogTitle>
+                                    </DialogHeader>
+                                    <form onSubmit={customerForm.handleSubmit(handleCustomerFormSubmit)} className="space-y-4 mt-4">
+                                      <FormField
+                                        control={customerForm.control}
+                                        name="name"
+                                        rules={{ required: 'Customer name is required' }}
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>Customer Name</FormLabel>
+                                            <FormControl>
+                                              <Input {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      
+                                      <FormField
+                                        control={customerForm.control}
+                                        name="website"
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>Website</FormLabel>
+                                            <FormControl>
+                                              <Input {...field} type="url" placeholder="https://example.com" />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      
+                                      <FormField
+                                        control={customerForm.control}
+                                        name="contactPerson"
+                                        rules={{ required: 'Contact person is required' }}
+                                        render={({ field }) => (
+                                          <FormItem>
+                                            <FormLabel>Contact Person</FormLabel>
+                                            <FormControl>
+                                              <Input {...field} />
+                                            </FormControl>
+                                            <FormMessage />
+                                          </FormItem>
+                                        )}
+                                      />
+                                      
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                          control={customerForm.control}
+                                          name="contactEmail"
+                                          rules={{ 
+                                            required: 'Email is required',
+                                            pattern: {
+                                              value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                                              message: 'Invalid email address'
+                                            }
+                                          }}
+                                          render={({ field }) => (
+                                            <FormItem>
+                                              <FormLabel>Contact Email</FormLabel>
+                                              <FormControl>
+                                                <Input {...field} type="email" />
+                                              </FormControl>
+                                              <FormMessage />
+                                            </FormItem>
+                                          )}
+                                        />
+                                        
+                                        <FormField
+                                          control={customerForm.control}
+                                          name="contactPhone"
+                                          rules={{ required: 'Phone number is required' }}
+                                          render={({ field }) => (
+                                            <FormItem>
+                                              <FormLabel>Contact Mobile</FormLabel>
+                                              <FormControl>
+                                                <Input {...field} type="tel" />
+                                              </FormControl>
+                                              <FormMessage />
+                                            </FormItem>
+                                          )}
+                                        />
+                                      </div>
+                                      
+                                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <FormField
+                                          control={customerForm.control}
+                                          name="industry"
+                                          rules={{ required: 'Industry is required' }}
+                                          render={({ field }) => (
+                                            <FormItem>
+                                              <FormLabel>Industry</FormLabel>
+                                              <Select
+                                                onValueChange={field.onChange}
+                                                defaultValue={field.value}
+                                                value={field.value}
+                                              >
+                                                <FormControl>
+                                                  <SelectTrigger>
+                                                    <SelectValue placeholder="Select industry" />
+                                                  </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                  <SelectItem value="industry1">Industry 1</SelectItem>
+                                                  <SelectItem value="industry2">Industry 2</SelectItem>
+                                                  <SelectItem value="industry3">Industry 3</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                              <FormMessage />
+                                            </FormItem>
+                                          )}
+                                        />
+                                        
+                                        <FormField
+                                          control={customerForm.control}
+                                          name="organizationType"
+                                          rules={{ required: 'Organization type is required' }}
+                                          render={({ field }) => (
+                                            <FormItem>
+                                              <FormLabel>Organization Type</FormLabel>
+                                              <Select
+                                                onValueChange={field.onChange}
+                                                defaultValue={field.value}
+                                                value={field.value}
+                                              >
+                                                <FormControl>
+                                                  <SelectTrigger>
+                                                    <SelectValue placeholder="Select type" />
+                                                  </SelectTrigger>
+                                                </FormControl>
+                                                <SelectContent>
+                                                  <SelectItem value="Governmental">Governmental</SelectItem>
+                                                  <SelectItem value="Private">Private</SelectItem>
+                                                  <SelectItem value="Semi-Private">Semi-Private</SelectItem>
+                                                </SelectContent>
+                                              </Select>
+                                              <FormMessage />
+                                            </FormItem>
+                                          )}
+                                        />
+                                      </div>
+                                      
+                                      <DialogFooter>
+                                        <Button type="button" variant="outline" onClick={() => setIsNewCustomerDialogOpen(false)}>
+                                          Cancel
+                                        </Button>
+                                        <Button type="submit">Create Customer</Button>
+                                      </DialogFooter>
+                                    </form>
+                                  </DialogContent>
+                                </Dialog>
+                              </div>
+                            )}
+                          </SelectContent>
+                        </Select>
+                        
+                        {!isEditMode && (
+                          <Button 
+                            type="button" 
+                            variant="outline" 
+                            size="sm" 
+                            className="w-full"
+                            onClick={() => setIsNewCustomerDialogOpen(true)}
+                          >
+                            <Building className="h-4 w-4 mr-2" />
+                            Create New Customer
+                          </Button>
+                        )}
+                      </div>
+                      
                       {isEditMode && (
                         <TooltipProvider>
                           <Tooltip>

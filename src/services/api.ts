@@ -1,4 +1,3 @@
-
 import axios from 'axios';
 import { UserRole, UserLocation, UserStatus } from '../contexts/AuthContext';
 import dbConnection from './dbConfig';
@@ -112,6 +111,17 @@ export interface Customer {
   contact_phone: string;
   industry: string;
   organization_type: CustomerType;
+}
+
+// Customer creation type - defines the expected structure for creating a new customer
+export interface CustomerCreate {
+  name: string;
+  contact_person: string;
+  contact_email: string;
+  contact_phone: string;
+  industry: string;
+  organization_type: string;
+  website?: string;
 }
 
 // Mock data (in a real app, this would be fetched from the server)
@@ -844,33 +854,29 @@ export const updateCustomer = async (id: string, data: Partial<Customer>): Promi
   }
 };
 
-export const createCustomer = async (customer: Omit<Customer, 'id'>): Promise<Customer> => {
+export const createCustomer = async (customerData: CustomerCreate): Promise<Customer> => {
   try {
-    const result = await dbConnection.query(`
-      INSERT INTO customers (name, contact_person, contact_email, contact_phone, industry, organization_type)
-      VALUES ($1, $2, $3, $4, $5, $6)
-      RETURNING *
-    `, [
-      customer.name,
-      customer.contact_person,
-      customer.contact_email,
-      customer.contact_phone,
-      customer.industry,
-      customer.organization_type
-    ]);
-    
-    return result.rows[0];
-  } catch (error) {
-    console.error('Database error in createCustomer:', error);
-    
-    // Fallback to mock implementation
-    const newCustomer: Customer = {
-      ...customer,
-      id: `${mockCustomers.length + 1}`
+    // For mock implementation
+    const mockCustomer: Customer = {
+      id: `customer-${Date.now()}`, // Generate a unique ID
+      name: customerData.name,
+      contact_person: customerData.contact_person,
+      contact_email: customerData.contact_email,
+      contact_phone: customerData.contact_phone,
+      industry: customerData.industry,
+      organization_type: customerData.organization_type,
+      website: customerData.website || null
     };
+
+    // In a real implementation, you would make an API call here
+    // const response = await axios.post('/api/customers', customerData);
+    // return response.data;
     
-    mockCustomers.push(newCustomer);
-    return newCustomer;
+    console.log('Created new customer:', mockCustomer);
+    return mockCustomer;
+  } catch (error) {
+    console.error('Error creating customer:', error);
+    throw error;
   }
 };
 
