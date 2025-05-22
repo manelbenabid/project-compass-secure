@@ -16,7 +16,8 @@ import {
   PocStatus, 
   PocTechnology,
   Customer,
-  PocTeamMember
+  PocTeamMember,
+  CustomerType
 } from '../services/api';
 import { format } from 'date-fns';
 import AppLayout from '../components/AppLayout';
