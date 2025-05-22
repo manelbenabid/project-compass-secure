@@ -292,7 +292,7 @@ const PocFormPage: React.FC = () => {
         contact_email: data.contactEmail,
         contact_phone: data.contactPhone,
         industry: data.industry,
-        organization_type: data.organizationType,
+        organization_type: data.organizationType.toLowerCase(), // Convert to lowercase to match CustomerType
         website: data.website || ''
       });
 
@@ -603,9 +603,9 @@ const PocFormPage: React.FC = () => {
                                                   </SelectTrigger>
                                                 </FormControl>
                                                 <SelectContent>
-                                                  <SelectItem value="Governmental">Governmental</SelectItem>
-                                                  <SelectItem value="Private">Private</SelectItem>
-                                                  <SelectItem value="Semi-Private">Semi-Private</SelectItem>
+                                                  <SelectItem value="governmental">Governmental</SelectItem>
+                                                  <SelectItem value="private">Private</SelectItem>
+                                                  <SelectItem value="semi-private">Semi-Private</SelectItem>
                                                 </SelectContent>
                                               </Select>
                                               <FormMessage />

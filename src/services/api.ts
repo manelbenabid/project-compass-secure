@@ -864,7 +864,7 @@ export const createCustomer = async (customerData: CustomerCreate): Promise<Cust
       contact_email: customerData.contact_email,
       contact_phone: customerData.contact_phone,
       industry: customerData.industry,
-      organization_type: customerData.organization_type,
+      organization_type: customerData.organization_type.toLowerCase() as CustomerType, // Cast to CustomerType
       website: customerData.website || null
     };
 
