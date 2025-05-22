@@ -19,7 +19,14 @@ import {
   Search, 
   CheckCircle, 
   Clock, 
-  Archive 
+  Archive,
+  Users,
+  UserCheck,
+  Calendar,
+  Loader2,
+  Clock4,
+  CheckCircle2,
+  X
 } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import {
@@ -35,13 +42,31 @@ const statusColors = {
   in_progress: 'bg-blue-100 text-blue-700 border-blue-200',
   completed: 'bg-green-100 text-green-700 border-green-200',
   archived: 'bg-gray-100 text-gray-700 border-gray-200',
+  'Account Manager coordinated with Tech Lead': 'bg-purple-100 text-purple-700 border-purple-200',
+  'Tech Lead reached the customer': 'bg-cyan-100 text-cyan-700 border-cyan-200',
+  'Tech Lead assigned engineering team': 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  'Kickoff is done & scopes defined': 'bg-pink-100 text-pink-700 border-pink-200',
+  'In progress': 'bg-blue-100 text-blue-700 border-blue-200',
+  'Customer pending': 'bg-orange-100 text-orange-700 border-orange-200',
+  'Taqniyat pending': 'bg-teal-100 text-teal-700 border-teal-200',
+  'Done': 'bg-green-100 text-green-700 border-green-200',
+  'Failed': 'bg-red-100 text-red-700 border-red-200',
 };
 
 const statusIcons = {
   proposed: Clock,
-  in_progress: FileCode,
+  in_progress: Loader2,
   completed: CheckCircle,
   archived: Archive,
+  'Account Manager coordinated with Tech Lead': UserCheck,
+  'Tech Lead reached the customer': Users,
+  'Tech Lead assigned engineering team': Users,
+  'Kickoff is done & scopes defined': Calendar,
+  'In progress': Loader2,
+  'Customer pending': Clock4,
+  'Taqniyat pending': Clock4,
+  'Done': CheckCircle2,
+  'Failed': X,
 };
 
 const PocListPage: React.FC = () => {
@@ -113,7 +138,15 @@ const PocListPage: React.FC = () => {
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="proposed">Proposed</SelectItem>
-                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="Account Manager coordinated with Tech Lead">AM coordinated w/ Tech Lead</SelectItem>
+                  <SelectItem value="Tech Lead reached the customer">Tech Lead reached customer</SelectItem>
+                  <SelectItem value="Tech Lead assigned engineering team">Engineering team assigned</SelectItem>
+                  <SelectItem value="Kickoff is done & scopes defined">Kickoff & scope complete</SelectItem>
+                  <SelectItem value="In progress">In Progress</SelectItem>
+                  <SelectItem value="Customer pending">Customer pending</SelectItem>
+                  <SelectItem value="Taqniyat pending">Taqniyat pending</SelectItem>
+                  <SelectItem value="Done">Done</SelectItem>
+                  <SelectItem value="Failed">Failed</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
                   <SelectItem value="archived">Archived</SelectItem>
                 </SelectContent>
@@ -150,7 +183,7 @@ const PocListPage: React.FC = () => {
       ) : (
         <div className="space-y-4">
           {filteredPocs.map((poc) => {
-            const StatusIcon = statusIcons[poc.status];
+            const StatusIcon = statusIcons[poc.status] || Clock;
             return (
               <Link key={poc.id} to={`/pocs/${poc.id}`}>
                 <Card className="transition-shadow hover:shadow-md">
@@ -175,7 +208,7 @@ const PocListPage: React.FC = () => {
                       <div className="ml-4 flex flex-col items-end space-y-2">
                         <Badge 
                           variant="outline" 
-                          className={statusColors[poc.status]}
+                          className={statusColors[poc.status] || 'bg-gray-100 text-gray-700 border-gray-200'}
                         >
                           {poc.status.replace('_', ' ')}
                         </Badge>
