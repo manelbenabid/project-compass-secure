@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import AppLayout from '../components/AppLayout';
@@ -6,8 +5,16 @@ import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building, Mail, Phone, Edit, Search, Briefcase } from 'lucide-react';
-import { Customer, CustomerType, getCustomers, updateCustomer } from '../services/api';
+import { Building, Mail, Phone, Edit, Search, Briefcase, Plus, Globe } from 'lucide-react';
+import { Customer, CustomerType, getCustomers, updateCustomer, createCustomer } from '../services/api';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
 import {
   Select,
   SelectContent,
@@ -25,6 +32,21 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const customerFormSchema = z.object({
+  name: z.string().min(1, "Company name is required"),
+  contact_person: z.string().min(1, "Contact person is required"),
+  contact_email: z.string().email("Invalid email format"),
+  contact_phone: z.string().min(1, "Phone number is required"),
+  industry: z.string().min(1, "Industry is required"),
+  organization_type: z.string().min(1, "Organization type is required"),
+  website: z.string().optional(),
+});
+
+type CustomerFormValues = z.infer<typeof customerFormSchema>;
 
 const CustomerCard: React.FC<{ 
   customer: Customer; 
@@ -225,6 +247,237 @@ const CustomerCard: React.FC<{
   );
 };
 
+const CreateCustomerDialog: React.FC<{
+  onCustomerCreated: () => void;
+}> = ({ onCustomerCreated }) => {
+  const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const form = useForm<CustomerFormValues>({
+    resolver: zodResolver(customerFormSchema),
+    defaultValues: {
+      name: "",
+      contact_person: "",
+      contact_email: "",
+      contact_phone: "",
+      industry: "",
+      organization_type: "",
+      website: "",
+    },
+  });
+  
+  const onSubmit = async (data: CustomerFormValues) => {
+    setIsSubmitting(true);
+    try {
+      await createCustomer({
+        name: data.name,
+        contact_person: data.contact_person,
+        contact_email: data.contact_email,
+        contact_phone: data.contact_phone,
+        industry: data.industry,
+        organization_type: data.organization_type.toLowerCase() as CustomerType,
+        website: data.website || ''
+      });
+      
+      toast.success("Customer created successfully!");
+      setOpen(false);
+      form.reset();
+      onCustomerCreated();
+    } catch (error) {
+      console.error("Error creating customer:", error);
+      toast.error("Failed to create customer");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+  
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        <Button className="bg-indigo-600 hover:bg-indigo-700">
+          <Plus className="w-4 h-4 mr-2" />
+          Create New Customer
+        </Button>
+      </DialogTrigger>
+      
+      <DialogContent className="sm:max-w-[550px]">
+        <DialogHeader>
+          <DialogTitle>Create New Customer</DialogTitle>
+          <DialogDescription>
+            Add a new customer to the system. Fill in all required fields.
+          </DialogDescription>
+        </DialogHeader>
+        
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="name"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Company Name *</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Building className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                      <Input placeholder="Enter company name" className="pl-10" {...field} />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="contact_person"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Contact Person *</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter contact name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="organization_type"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Organization Type *</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select organization type" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        <SelectItem value="governmental">Governmental</SelectItem>
+                        <SelectItem value="private">Private</SelectItem>
+                        <SelectItem value="semi-private">Semi-Private</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <FormField
+              control={form.control}
+              name="industry"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Industry *</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Briefcase className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <SelectTrigger className="pl-10">
+                          <SelectValue placeholder="Select industry" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="technology">Technology</SelectItem>
+                          <SelectItem value="finance">Finance</SelectItem>
+                          <SelectItem value="healthcare">Healthcare</SelectItem>
+                          <SelectItem value="education">Education</SelectItem>
+                          <SelectItem value="manufacturing">Manufacturing</SelectItem>
+                          <SelectItem value="retail">Retail</SelectItem>
+                          <SelectItem value="other">Other</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="website"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Website</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Globe className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                      <Input placeholder="https://example.com" className="pl-10" {...field} />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <Separator />
+            
+            <FormField
+              control={form.control}
+              name="contact_email"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Email *</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                      <Input type="email" placeholder="contact@example.com" className="pl-10" {...field} />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <FormField
+              control={form.control}
+              name="contact_phone"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Contact Phone *</FormLabel>
+                  <FormControl>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500 h-4 w-4" />
+                      <Input placeholder="+1 (555) 123-4567" className="pl-10" {...field} />
+                    </div>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            
+            <DialogFooter>
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => setOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-indigo-600 hover:bg-indigo-700"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? "Creating..." : "Create Customer"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+};
+
 const CustomersPage: React.FC = () => {
   const { hasPermission } = useAuth();
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -258,9 +511,14 @@ const CustomersPage: React.FC = () => {
 
   return (
     <AppLayout>
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Customers</h1>
-        <p className="text-gray-500">View and manage customer information</p>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-2xl font-semibold">Customers</h1>
+          <p className="text-gray-500">View and manage customer information</p>
+        </div>
+        {canEditCustomers && (
+          <CreateCustomerDialog onCustomerCreated={loadCustomers} />
+        )}
       </div>
       
       <div className="mb-6">
