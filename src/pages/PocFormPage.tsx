@@ -292,7 +292,7 @@ const PocFormPage: React.FC = () => {
         contact_email: data.contactEmail,
         contact_phone: data.contactPhone,
         industry: data.industry,
-        organization_type: data.organizationType.toLowerCase(), // Convert to lowercase to match CustomerType
+        organization_type: data.organizationType.toLowerCase() as CustomerType, // Cast to CustomerType
         website: data.website || ''
       });
 

@@ -1,4 +1,3 @@
-
 import { delay } from '../utils';
 
 export type CustomerType = 'private' | 'governmental' | 'semi-private';
