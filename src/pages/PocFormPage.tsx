@@ -106,7 +106,7 @@ const PocFormPage: React.FC = () => {
   const form = useForm<FormData>({
     defaultValues: {
       title: '',
-      status: 'Account Manager Coordinated with Tech Lead',
+      status: 'Account Manager coordinated with Tech Lead',
       technology: 'switching',
       customerId: '',
       leadId: '',
@@ -415,7 +415,7 @@ const PocFormPage: React.FC = () => {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <div className="space-y-6 max-w-3xl mx-auto">
-            {/* Customer Details Card */}
+            {/* Customer Details Card (Renamed from Basic Information) */}
             <Card>
               <CardHeader>
                 <CardTitle>Customer Details</CardTitle>
@@ -704,21 +704,21 @@ const PocFormPage: React.FC = () => {
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="Account Manager Coordinated with Tech Lead">
-                            Account Manager Coordinated with Tech Lead
+                          <SelectItem value="Account Manager coordinated with Tech Lead">
+                            Account Manager coordinated with Tech Lead
                           </SelectItem>
-                          <SelectItem value="Tech Lead Reached the Customer">
-                            Tech Lead Reached the Customer
+                          <SelectItem value="Tech Lead reached the customer">
+                            Tech Lead reached the customer
                           </SelectItem>
-                          <SelectItem value="Tech Lead Assigned Engineering Team">
-                            Tech Lead Assigned Engineering Team
+                          <SelectItem value="Tech Lead assigned engineering team">
+                            Tech Lead assigned engineering team
                           </SelectItem>
-                          <SelectItem value="Kickoff is Done & Scope is Defined">
-                            Kickoff is Done & Scope is Defined
+                          <SelectItem value="Kickoff is done & scopes defined">
+                            Kickoff is done & scopes defined
                           </SelectItem>
-                          <SelectItem value="In Progress">In Progress</SelectItem>
-                          <SelectItem value="Customer Pending">Customer Pending</SelectItem>
-                          <SelectItem value="Taqniyat Pending">Taqniyat Pending</SelectItem>
+                          <SelectItem value="In progress">In progress</SelectItem>
+                          <SelectItem value="Customer pending">Customer pending</SelectItem>
+                          <SelectItem value="Taqniyat pending">Taqniyat pending</SelectItem>
                           <SelectItem value="Done">Done</SelectItem>
                           <SelectItem value="Failed">Failed</SelectItem>
                         </SelectContent>
