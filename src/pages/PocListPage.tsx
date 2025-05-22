@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -17,9 +16,7 @@ import {
   FileCode, 
   Plus, 
   Search, 
-  CheckCircle, 
   Clock, 
-  Archive,
   Users,
   UserCheck,
   Calendar,
@@ -38,10 +35,6 @@ import {
 } from "@/components/ui/select";
 
 const statusColors = {
-  proposed: 'bg-amber-100 text-amber-700 border-amber-200',
-  in_progress: 'bg-blue-100 text-blue-700 border-blue-200',
-  completed: 'bg-green-100 text-green-700 border-green-200',
-  archived: 'bg-gray-100 text-gray-700 border-gray-200',
   'Account Manager coordinated with Tech Lead': 'bg-purple-100 text-purple-700 border-purple-200',
   'Tech Lead reached the customer': 'bg-cyan-100 text-cyan-700 border-cyan-200',
   'Tech Lead assigned engineering team': 'bg-indigo-100 text-indigo-700 border-indigo-200',
@@ -54,10 +47,6 @@ const statusColors = {
 };
 
 const statusIcons = {
-  proposed: Clock,
-  in_progress: Loader2,
-  completed: CheckCircle,
-  archived: Archive,
   'Account Manager coordinated with Tech Lead': UserCheck,
   'Tech Lead reached the customer': Users,
   'Tech Lead assigned engineering team': Users,
@@ -137,7 +126,6 @@ const PocListPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="proposed">Proposed</SelectItem>
                   <SelectItem value="Account Manager coordinated with Tech Lead">AM coordinated w/ Tech Lead</SelectItem>
                   <SelectItem value="Tech Lead reached the customer">Tech Lead reached customer</SelectItem>
                   <SelectItem value="Tech Lead assigned engineering team">Engineering team assigned</SelectItem>
@@ -147,8 +135,6 @@ const PocListPage: React.FC = () => {
                   <SelectItem value="Taqniyat pending">Taqniyat pending</SelectItem>
                   <SelectItem value="Done">Done</SelectItem>
                   <SelectItem value="Failed">Failed</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="archived">Archived</SelectItem>
                 </SelectContent>
               </Select>
             </div>
