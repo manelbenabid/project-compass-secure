@@ -1,3 +1,4 @@
+
 import { delay } from '../utils';
 
 export type CustomerType = 'private' | 'governmental' | 'semi-private';
@@ -97,4 +98,77 @@ export const createCustomer = async (customerData: Omit<Customer, 'id'>): Promis
     console.error('Error creating customer:', error);
     throw new Error('Failed to create customer');
   }
+};
+
+// Add mock implementations for other API functions referenced in the error messages
+export interface Poc {
+  id: string;
+  title: string;
+  description: string;
+  status: PocStatus;
+  createdAt: string;
+  updatedAt: string;
+  tags: string[];
+  // Add other necessary properties based on your app requirements
+}
+
+export type PocStatus = 'proposed' | 'in_progress' | 'completed' | 'archived';
+export type PocTechnology = string;
+export interface PocTeamMember {
+  id: string;
+  role: string;
+  // Add other necessary properties
+}
+
+export interface Employee {
+  id: string;
+  name: string;
+  // Add other necessary properties
+}
+
+export const getPocs = async (): Promise<Poc[]> => {
+  // Mock implementation
+  await delay(500);
+  return []; // Return empty array for now
+};
+
+export const getPoc = async (id: string): Promise<Poc | null> => {
+  // Mock implementation
+  await delay(500);
+  return null; // Return null for now
+};
+
+export const addComment = async (pocId: string, comment: string): Promise<void> => {
+  // Mock implementation
+  await delay(500);
+};
+
+export const updatePoc = async (id: string, pocData: Partial<Poc>): Promise<Poc> => {
+  // Mock implementation
+  await delay(500);
+  throw new Error('Not implemented');
+};
+
+export const createPoc = async (pocData: Omit<Poc, 'id'>): Promise<Poc> => {
+  // Mock implementation
+  await delay(500);
+  throw new Error('Not implemented');
+};
+
+export const getEmployees = async (): Promise<Employee[]> => {
+  // Mock implementation
+  await delay(500);
+  return [];
+};
+
+export const getEmployeesByRole = async (role: string): Promise<Employee[]> => {
+  // Mock implementation
+  await delay(500);
+  return [];
+};
+
+export const updateEmployeeInfo = async (id: string, data: Partial<Employee>): Promise<Employee> => {
+  // Mock implementation
+  await delay(500);
+  throw new Error('Not implemented');
 };
