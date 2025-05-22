@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -35,25 +36,25 @@ import {
 } from "@/components/ui/select";
 
 const statusColors = {
-  'Account Manager coordinated with Tech Lead': 'bg-purple-100 text-purple-700 border-purple-200',
-  'Tech Lead reached the customer': 'bg-cyan-100 text-cyan-700 border-cyan-200',
-  'Tech Lead assigned engineering team': 'bg-indigo-100 text-indigo-700 border-indigo-200',
-  'Kickoff is done & scopes defined': 'bg-pink-100 text-pink-700 border-pink-200',
-  'In progress': 'bg-blue-100 text-blue-700 border-blue-200',
-  'Customer pending': 'bg-orange-100 text-orange-700 border-orange-200',
-  'Taqniyat pending': 'bg-teal-100 text-teal-700 border-teal-200',
+  'Account Manager Coordinated with Tech Lead': 'bg-purple-100 text-purple-700 border-purple-200',
+  'Tech Lead Reached the Customer': 'bg-cyan-100 text-cyan-700 border-cyan-200',
+  'Tech Lead Assigned Engineering Team': 'bg-indigo-100 text-indigo-700 border-indigo-200',
+  'Kickoff is Done & Scope is Defined': 'bg-pink-100 text-pink-700 border-pink-200',
+  'In Progress': 'bg-blue-100 text-blue-700 border-blue-200',
+  'Customer Pending': 'bg-orange-100 text-orange-700 border-orange-200',
+  'Taqniyat Pending': 'bg-teal-100 text-teal-700 border-teal-200',
   'Done': 'bg-green-100 text-green-700 border-green-200',
   'Failed': 'bg-red-100 text-red-700 border-red-200',
 };
 
 const statusIcons = {
-  'Account Manager coordinated with Tech Lead': UserCheck,
-  'Tech Lead reached the customer': Users,
-  'Tech Lead assigned engineering team': Users,
-  'Kickoff is done & scopes defined': Calendar,
-  'In progress': Loader2,
-  'Customer pending': Clock4,
-  'Taqniyat pending': Clock4,
+  'Account Manager Coordinated with Tech Lead': UserCheck,
+  'Tech Lead Reached the Customer': Users,
+  'Tech Lead Assigned Engineering Team': Users,
+  'Kickoff is Done & Scope is Defined': Calendar,
+  'In Progress': Loader2,
+  'Customer Pending': Clock4,
+  'Taqniyat Pending': Clock4,
   'Done': CheckCircle2,
   'Failed': X,
 };
@@ -126,13 +127,13 @@ const PocListPage: React.FC = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
-                  <SelectItem value="Account Manager coordinated with Tech Lead">AM coordinated w/ Tech Lead</SelectItem>
-                  <SelectItem value="Tech Lead reached the customer">Tech Lead reached customer</SelectItem>
-                  <SelectItem value="Tech Lead assigned engineering team">Engineering team assigned</SelectItem>
-                  <SelectItem value="Kickoff is done & scopes defined">Kickoff & scope complete</SelectItem>
-                  <SelectItem value="In progress">In Progress</SelectItem>
-                  <SelectItem value="Customer pending">Customer pending</SelectItem>
-                  <SelectItem value="Taqniyat pending">Taqniyat pending</SelectItem>
+                  <SelectItem value="Account Manager Coordinated with Tech Lead">AM Coordinated w/ Tech Lead</SelectItem>
+                  <SelectItem value="Tech Lead Reached the Customer">Tech Lead Reached Customer</SelectItem>
+                  <SelectItem value="Tech Lead Assigned Engineering Team">Engineering Team Assigned</SelectItem>
+                  <SelectItem value="Kickoff is Done & Scope is Defined">Kickoff & Scope Complete</SelectItem>
+                  <SelectItem value="In Progress">In Progress</SelectItem>
+                  <SelectItem value="Customer Pending">Customer Pending</SelectItem>
+                  <SelectItem value="Taqniyat Pending">Taqniyat Pending</SelectItem>
                   <SelectItem value="Done">Done</SelectItem>
                   <SelectItem value="Failed">Failed</SelectItem>
                 </SelectContent>
